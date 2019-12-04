@@ -65,7 +65,7 @@ int main() {
 	// declares thread for clients
 	pthread_t clientThread;
 	
-	// asks client what they want to do for reservation
+	// creates threads for N clients at random intervals of time
 	printf("\nHello dear customer, what can we do for you today?\n\n");
 	printf("[1] Would you like to make a reservation?\n");
 	printf("[2] Would you like to inquire about your reservation?\n");
@@ -75,7 +75,6 @@ int main() {
 	fgets(client_ans, sizeof(client_ans), stdin);
 	sscanf(client_ans, "%d", &option);
 
-	// based on user input, will send them to appropriate thread function
 	switch(option) {
 		case 1:
 			pthread_create(&clientThread, NULL, make_res, NULL);
