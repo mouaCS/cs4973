@@ -8,12 +8,14 @@
 #define TICKET_PRICE 450
 
 // ===========================================================================
-// function to create client receipts
+// function to call when customer makes reservation for multiple people
 // ===========================================================================
-void client_receipt(char name[50], char dof[15], int seat_num) {
+void client_append_receipt(char name[50], char dof[15], int seat_num, int ticket_num) {
     FILE *fp;
+    char filename[15];
 
-    fp = fopen("receipt.txt", "ab+");
+    sprintf(filename, "%d.txt", ticket_num);
+    fp = fopen(filename, "ab+");
 
     if(fp == NULL) {
         printf("Unable to create file.\n");
@@ -25,10 +27,41 @@ void client_receipt(char name[50], char dof[15], int seat_num) {
 }
 
 // ===========================================================================
+// function to call whenever client enters date of travel
+// also keeps track of vacant or occupied seats
+// ===========================================================================
+void flight_manager(char travel_date[12]) {
+	FILE *fp;
+	char filename[sizeof "00-00-0000.txt"];
+	char seat_available[SEATS] = {"vacant"};
+	char choice[5];
+
+	sprintf(filename, "%02d-%02d-%04d.txt", travel_date);
+	fp = fopen(filename, "ab+");
+
+	if(fp == NULL) {
+        printf("Unable to create file.\n");
+        exit(EXIT_FAILURE);
+    }
+
+/*    while(strcmp(seat_available[seat_num], "vacant") != 0) {
+        if(strcmp(seat_available[seat_num], "vacant") == 0)
+        	seat_available[seat_num] = "occupied";
+        else {
+        	printf("The seat you have chosen is not available, we will randomly select a seat for you.");
+        	seat_num = 1 + rand() / (RAND_MAX / (150 - 1 + 1) + 1);
+        }
+    }*/
+
+    fclose(fp);
+}
+
+// ===========================================================================
 // thread function for client to make a reservation and ask for relevant info:
 // name, email, phone #, birth date, gender, government ID number, and flight date
 // ===========================================================================
 void *make_res(void *arg) {
+    int ticket_num = rand();
     int add_people = 1;
     int seat = 0;
     int count = 1;
@@ -67,21 +100,27 @@ void *make_res(void *arg) {
         else if (strcmp(choice, "no") == 0)
             seat = 1 + rand() / (RAND_MAX / (150 - 1 + 1) + 1);
 
-        client_receipt(name, gender, seat);
+        // calls function to create and write info to text file
+        client_append_receipt(name, dot, seat, ticket_num);
 
         // asks if customer would like to make a reservation for another person
         printf("Would you like to add more people? [yes/no] ");
         scanf(" %[^\n]", choice);
 
+        // exit loop after done adding all relevant info for reservation
         if (strcmp(choice, "no") == 0)
             add_people = 0;
     }
 
+    // asks for email
     printf("\nYou're almost done!!\n\nPlease enter your email: ");
     scanf(" %[^\n]", email);
     
+    // asks for phone
     printf("Please enter your phone number: ");
     scanf(" %[^\n]", phone);
+
+    printf("\nThank you for making reservations with us! Here is your ticket number: %d\n", ticket);
 
     pthread_exit(NULL);
 }
@@ -90,7 +129,8 @@ void *make_res(void *arg) {
 // thread function for client to inquire about reservation
 // ===========================================================================
 void *inquire_res(void *arg) {
-	printf("\n\nInquiry reservation\n\n");
+	printf("\nInquiry reservation\n\n");
+	printf("Please enter ticket number: ");
 	pthread_exit(NULL);
 }
 
@@ -98,7 +138,7 @@ void *inquire_res(void *arg) {
 // thread function for client to modify about reservation
 // ===========================================================================
 void *modify_res(void *arg) {
-	printf("\n\nModify reservation\n\n");
+	printf("\nModify reservation\n\n");
 	pthread_exit(NULL);
 }
 
@@ -106,7 +146,7 @@ void *modify_res(void *arg) {
 // thread function for client to cancel reservation
 // ===========================================================================
 void *cancel_res(void *arg) {
-	printf("\n\nCancel reservation\n\n");
+	printf("\nCancel reservation\n\n");
 	pthread_exit(NULL);
 }
 
@@ -127,7 +167,7 @@ int main() {
 	printf("[3] Would you like to modify your reservation?\n");
 	printf("[4] Would you like to cancel your reservation?\n\n");
 	printf("Please select any of the options above by typing the number next to the suggestions! ");
-	fgets(client_ans, sizeof(client_ans), stdin);
+	scanf(" %[^\n]", client_ans);
 	sscanf(client_ans, "%d", &option);
 
 	switch(option) {

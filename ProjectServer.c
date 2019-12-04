@@ -24,12 +24,14 @@ int opt = 1;
 int addrlen = sizeof(address);
 
 // ===========================================================================
-// function to create client receipts
+// function to call when customer makes reservation for multiple people
 // ===========================================================================
-void client_receipt(char name[50], char dof[15], int seat_num) {
+void client_append_receipt(char name[50], char dof[15], int seat_num, int ticket_num) {
     FILE *fp;
+    char filename[15];
 
-    fp = fopen("receipt.txt", "ab+");
+    sprintf(filename, "%d.txt", ticket_num);
+    fp = fopen(filename, "ab+");
 
     if(fp == NULL) {
         printf("Unable to create file.\n");
@@ -39,73 +41,6 @@ void client_receipt(char name[50], char dof[15], int seat_num) {
     fprintf(fp, "Name: %s\nDate of Flight: %s\nSeat number: %d\n\n", name, dof, seat_num);
     fclose(fp);
 }
-
-// ===========================================================================
-// thread function for client to make a reservation and ask for relevant info:
-// name, email, phone #, birth date, gender, government ID number, and flight date
-// ===========================================================================
-void *make_res(void *arg) {
-    int add_people = 1;
-    int seat = 0;
-    int count = 1;
-    char name[50], dob[12], gender[7], id[15], dot[12];
-    char email[100], phone[15];
-    char choice[5];
-
-    while(add_people == 1) {
-        // asks for full name of customer
-        printf("\nPlease enter full name: ");
-        scanf(" %[^\n]", name);
-    
-        // asks for birthdate of customer
-        printf("Please enter date of birth (01/01/0001): ");
-        scanf(" %[^\n]", dob);
-    
-        // asks for gender of customer
-        printf("Please enter gender (male or female): ");
-        scanf(" %[^\n]", gender);
-
-        // asks for government ID of customer    
-        printf("Please enter government ID number: ");
-        scanf(" %[^\n]", id);
-
-        // asks for date of travel/flight
-        printf("Please enter the date you want to travel (01/01/0001): ");
-        scanf(" %[^\n]", dot);
-
-        // asks if customer would like to reserve a seat
-        printf("Would you like to reserve a seat? [yes/no] ");
-        scanf(" %[^\n]", choice);
-    
-        if (strcmp(choice, "yes") == 0) {
-            printf("show flight summary for client to choose seat\n\n");
-        }
-        else if (strcmp(choice, "no") == 0)
-            seat = 1 + rand() / (RAND_MAX / (150 - 1 + 1) + 1);
-
-        // calls function to create and write info to text file
-        client_receipt(name, dot, seat);
-
-        // asks if customer would like to make a reservation for another person
-        printf("Would you like to add more people? [yes/no] ");
-        scanf(" %[^\n]", choice);
-
-        // exit loop after done adding all relevant info for reservation
-        if (strcmp(choice, "no") == 0)
-            add_people = 0;
-    }
-
-    // asks for email
-    printf("\nYou're almost done!!\n\nPlease enter your email: ");
-    scanf(" %[^\n]", email);
-    
-    // asks for phone
-    printf("Please enter your phone number: ");
-    scanf(" %[^\n]", phone);
-
-    pthread_exit(NULL);
-}
-
 
 // ===========================================================================
 // thread function for client to inquire about reservation
@@ -184,8 +119,103 @@ void *establishCon(void *threadID)
                 // Selection Handling
                 else if (strcmp(buffer, "1") == 0)
                 {
+                    // ===========================================================================
+                    // section handles making reservation and ask for relevant info:
+                    // name, email, phone #, birth date, gender, government ID number, and flight date
+                    // ===========================================================================
                     printf("SELECTED 1\n");
-                    send(new_socket, conMessage, strlen(conMessage), 0);
+                        int ticket_num = rand();
+                        int add_people = 1;
+                        int seat;
+                        char name[50], dob[12], gender[7], id[15], dot[12];
+                        char email[100], phone[15];
+                        char choice[5];
+
+                        while(add_people == 1) {
+                            // asks for full name of customer
+                            char *name_msg = "\nPlease enter full name: ";
+                            send(new_socket, name_msg, strlen(name_msg), 0);
+                            valread = read(new_socket, buffer, 1024);
+                            memset(name, '\0', sizeof(name));
+                            strcpy(name, buffer);
+                        
+                            // asks for birthdate of customer
+                            char *birthdate_msg = "Please enter date of birth (01-01-0001): ";
+                            send(new_socket, birthdate_msg, strlen(birthdate_msg), 0);
+                            valread = read(new_socket, buffer, 1024);
+                            memset(dob, '\0', sizeof(dob));
+                            strcpy(dob, buffer);
+                        
+                            // asks for gender of customer
+                            char *gender_msg = "Please enter gender (male or female): ";
+                            send(new_socket, gender_msg, strlen(gender_msg), 0);
+                            valread = read(new_socket, buffer, 1024);
+                            memset(gender, '\0', sizeof(gender));
+                            strcpy(gender, buffer);
+
+                            // asks for government ID of customer    
+                            char *id_msg = "Please enter government ID number: ";
+                            send(new_socket, id_msg, strlen(id_msg), 0);
+                            valread = read(new_socket, buffer, 1024);
+                            memset(id, '\0', sizeof(id));
+                            strcpy(id, buffer);
+
+                            // asks for date of travel/flight
+                            char *dot_msg = "Please enter the date you want to travel (01-01-0001): ";
+                            send(new_socket, dot_msg, strlen(dot_msg), 0);
+                            valread = read(new_socket, buffer, 1024);
+                            memset(dot, '\0', sizeof(dot));
+                            strcpy(dot, buffer);
+
+                            // asks if customer would like to reserve a seat
+                            char *seat_msg = "Would you like to reserve a seat? [yes/no] ";
+                            send(new_socket, seat_msg, strlen(seat_msg), 0);
+                            valread = read(new_socket, buffer, 1024);
+                            memset(choice, '\0', sizeof(choice));
+                            strcpy(choice, buffer);
+                        
+                            if (strcmp(choice, "yes") == 0) {
+                                char *choose_msg = "show flight summary for client to choose seat\n";
+                                send(new_socket, choose_msg, strlen(choose_msg), 0);
+                            }
+                            else if (strcmp(choice, "no") == 0)
+                                seat = 1 + rand() / (RAND_MAX / (150 - 1 + 1) + 1);
+
+                            // calls function to create and write info to text file
+                            client_append_receipt(name, dot, seat, ticket_num);
+
+                            // asks if customer would like to make a reservation for another person
+                            char *people_msg = "Would you like to add more people? [yes/no] ";
+                            send(new_socket, people_msg, strlen(people_msg), 0);
+                            valread = read(new_socket, buffer, 1024);
+                            memset(choice, '\0', sizeof(choice));
+                            strcpy(choice, buffer);
+
+                            // exit loop after done adding all relevant info for reservation
+                            if (strcmp(choice, "no") == 0)
+                                add_people = 0;
+                        }
+
+                        // asks for email
+                        char *email_msg = "\nYou're almost done!!\n\nPlease enter your email: ";
+                        send(new_socket, email_msg, strlen(email_msg), 0);
+                        valread = read(new_socket, buffer, 1024);
+                        memset(email, '\0', sizeof(email));
+                        strcpy(email, buffer);
+                        
+                        // asks for phone
+                        char *phone_msg = "Please enter your phone number: ";
+                        send(new_socket, phone_msg, strlen(phone_msg), 0);
+                        valread = read(new_socket, buffer, 1024);
+                        memset(phone, '\0', sizeof(phone));
+                        strcpy(phone, buffer);
+
+                        char thank_msg[100] = "\nThank you for making reservations with us! Here is your ticket number: ";
+                        char ticket_msg[10];
+                        sprintf(ticket_msg, "%d\n", ticket_num);
+                        send(new_socket, thank_msg, strlen(thank_msg), 0);
+                        send(new_socket, ticket_msg, strlen(thank_msg), 0);
+
                 }
                 else if (strcmp(buffer, "2") == 0)
                 {
