@@ -25,6 +25,10 @@ int opt = 1;
 int addrlen = sizeof(address);
 char buffer[1024] = {0};
 
+
+// Mutex Lock
+pthread_mutex_t lock;
+
 // ===========================================================================
 // function to call when customer makes reservation for multiple people
 // ===========================================================================
@@ -227,8 +231,6 @@ void *establishCon(void *threadID)
 
     int new_socket;
 
-    pthread_mutex_t lock;
-
     // Thread Running Boolean
     int keepRunning = 1;
     int end = 0;
@@ -358,6 +360,11 @@ int main(int argc, char const *argv[])
 
     // Thread Handling
     pthread_t clientThread[300];
+
+    if (pthread_mutex_init(&lock, NULL) != 0) { 
+        printf("\n mutex init has failed\n"); 
+        return 1; 
+    } 
     
     for (int i = 0; i < MAX_CLIENTS; i++)
     {
