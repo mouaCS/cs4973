@@ -49,12 +49,22 @@ int main(int argc, char const *argv[])
         char conData[30];
         scanf("%s", conData);
 
-        // Exit From Thread
+        // Exit From Client Loop
         if (strcmp(conData,"exit") == 0)
         {
             runClient = 0;
         }
-        
+        // ------------------
+        // FOR TESTING ONLY
+        // Exit Thread
+        else if (strcmp(conData,"end") == 0)
+        {
+            send(sock, conData, strlen(conData), 0);
+            runClient = 0;
+        }
+        // FOR TESTING ONLY
+        // ------------------
+
         // Send Message To Server
         else
         {

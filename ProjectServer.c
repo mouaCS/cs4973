@@ -15,6 +15,15 @@
 #define TICKET_PRICE 450
 
 
+// Global Server Socket Variables
+int server_fd;
+int new_socket;
+int valread;
+struct sockaddr_in address;
+int opt = 1;
+int addrlen = sizeof(address);
+
+
 // ===========================================================================
 // thread function for client to make a reservation and ask for relevant info:
 // name, email, phone #, birth date, gender, government ID number, and flight date
@@ -65,15 +74,15 @@ void *cancel_res(void *arg) {
     pthread_exit(NULL);
 }
 
-int main(int argc, char const *argv[])
+void *establishCon(void *threadID)
 {
+    int *id = (int *)threadID;
+
+    // Thread Running Boolean
     int keepRunning = 1;
-    int server_fd;
-    int new_socket;
-    int valread;
-    struct sockaddr_in address;
-    int opt = 1;
-    int addrlen = sizeof(address);
+    int end = 0;
+
+    // Message Handling
     char buffer[1024] = {0};
     char *conMessage = "\
     Hello dear customer, what can we do for you today?\n\n\
@@ -82,6 +91,86 @@ int main(int argc, char const *argv[])
     [3] MODIFY RESERVATION\n\
     [4] CANCEL RESERVATION\n\n\
     Please Select (Type exit to leave): ";
+
+    // Encapsulating Thread Loop
+    while (end != 1)
+    {
+        if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen))<0)
+        {
+            perror("accept");
+            exit(EXIT_FAILURE);
+        }
+        // Send Connection Message
+        send(new_socket, conMessage, strlen(conMessage), 0);
+
+        // Loop For Single Client
+        while (keepRunning == 1)
+        {
+
+            // Read Client Message To Buffer
+            char buffer[1024] = {0};
+            valread = read(new_socket, buffer, 1024);
+            if (buffer[0] != 0)
+            {
+                // -----------------------------
+                // FOR TESTING ONLY
+                // End Thread Completely
+                if (strcmp(buffer, "end") == 0)
+                {
+                    keepRunning = 0;
+                    end = 1;
+                    printf("ENDING THREAD\n");
+                }
+                // FOR TESTING ONLY
+                // -----------------------------
+
+                // Selection Handling
+                else if (strcmp(buffer, "1") == 0)
+                {
+                    printf("SELECTED 1\n");
+                    send(new_socket, conMessage, strlen(conMessage), 0);
+                }
+                else if (strcmp(buffer, "2") == 0)
+                {
+                    printf("SELECTED 2\n");
+                    send(new_socket, conMessage, strlen(conMessage), 0);
+                }
+                else if (strcmp(buffer, "3") == 0)
+                {
+                    printf("SELECTED 3\n");
+                    send(new_socket, conMessage, strlen(conMessage), 0);
+                }
+                else if (strcmp(buffer, "4") == 0)
+                {
+                    printf("SELECTED 4\n");
+                    send(new_socket, conMessage, strlen(conMessage), 0);
+                }
+                else
+                {
+                    send(new_socket, conMessage, strlen(conMessage), 0);
+                }
+            }
+            else
+            {
+                // End Thread
+                keepRunning = 0;
+            }
+
+        }
+    }
+    return NULL;
+}
+
+
+
+//----------------
+//----------------
+// MAIN EXECUTION
+//----------------
+//----------------
+int main(int argc, char const *argv[])
+{
+    int MAX_CLIENTS = 100;
 
     // Create Socket File Descriptor
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
@@ -107,54 +196,13 @@ int main(int argc, char const *argv[])
         exit(EXIT_FAILURE);
     }
 
-    if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen))<0)
+
+    // Thread Handling
+    pthread_t clientThread;
+    
+    for (int i = 0; i < MAX_CLIENTS; i++)
     {
-        perror("accept");
-        exit(EXIT_FAILURE);
+        pthread_create(&clientThread, NULL, establishCon, &clientThread);
     }
-    // Send Connection Message
-    send(new_socket, conMessage, strlen(conMessage), 0);
-
-    while (keepRunning == 1)
-    {
-
-        // Read Client Message To Buffer
-        char buffer[1024] = {0};
-        valread = read(new_socket, buffer, 1024);
-        if (buffer[0] != 0)
-        {
-
-            // Selection Handling
-            if (strcmp(buffer, "1") == 0)
-            {
-                printf("SELECTED 1\n");
-                send(new_socket, conMessage, strlen(conMessage), 0);
-            }
-            else if (strcmp(buffer, "2") == 0)
-            {
-                printf("SELECTED 2\n");
-                send(new_socket, conMessage, strlen(conMessage), 0);
-            }
-            else if (strcmp(buffer, "3") == 0)
-            {
-                printf("SELECTED 3\n");
-                send(new_socket, conMessage, strlen(conMessage), 0);
-            }
-            else if (strcmp(buffer, "4") == 0)
-            {
-                printf("SELECTED 4\n");
-                send(new_socket, conMessage, strlen(conMessage), 0);
-            }
-            else
-            {
-                send(new_socket, conMessage, strlen(conMessage), 0);
-            }
-        }
-        else
-        {
-            keepRunning = 0;
-        }
-
-    }
-    return 0;
+    pthread_join(clientThread, NULL); 
 }
