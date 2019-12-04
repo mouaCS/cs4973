@@ -5,8 +5,8 @@
 #include <unistd.h>
 #include <string.h>
 
-// Use Port 8080
-#define PORT 8080 
+// Set Port
+#define PORT 2000 
 
 int main(int argc, char const *argv[])
 {
@@ -41,21 +41,29 @@ int main(int argc, char const *argv[])
 
     // Read From Socket To Buffer
     valread = read(sock, buffer, 1024);
+    printf("%s",buffer);
 
     while (runClient == 1)
     {
         connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
-        printf("ENTER: ");
         char conData[30];
         scanf("%s", conData);
 
+        // Exit From Thread
         if (strcmp(conData,"exit") == 0)
         {
             runClient = 0;
         }
+        
+        // Send Message To Server
         else
         {
             send(sock, conData, strlen(conData), 0);
+
+            // Read Server Message To Buffer
+            char buffer[1024] = {0};
+            read(sock, buffer, 1024);
+            printf("%s",buffer);
         }
     }
 
