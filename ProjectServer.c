@@ -1,4 +1,5 @@
 // Server Side Socket Program
+#include <pthread.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <sys/socket.h>
@@ -6,8 +7,63 @@
 #include <netinet/in.h>
 #include <string.h>
 
-// Use Port 8080
-#define PORT 8080
+// Set Port
+#define PORT 2000
+
+// Set Plane Info
+#define SEATS 150
+#define TICKET_PRICE 450
+
+
+// ===========================================================================
+// thread function for client to make a reservation and ask for relevant info:
+// name, email, phone #, birth date, gender, government ID number, and flight date
+// ===========================================================================
+void *make_res(void *arg) {
+    char name[50];
+    char dob[15];
+    char gender[10];
+    char id[15];
+
+    printf("\nPlease enter your full name: ");
+    fgets(name, sizeof(name), stdin);
+
+    printf("Please enter your date of birth (01/01/0001): ");
+    fgets(dob, sizeof(dob), stdin);
+
+    printf("Please enter your gender (male or female): ");
+    fgets(gender, sizeof(gender), stdin);
+
+    printf("Please enter your government ID number: ");
+    fgets(id, sizeof(id), stdin);
+
+    pthread_exit(NULL);
+}
+
+
+// ===========================================================================
+// thread function for client to inquire about reservation
+// ===========================================================================
+void *inquire_res(void *arg) {
+    printf("\n\nInquiry reservation\n\n");
+    pthread_exit(NULL);
+}
+
+// ===========================================================================
+// thread function for client to modify about reservation
+// ===========================================================================
+void *modify_res(void *arg) {
+    printf("\n\nModify reservation\n\n");
+    pthread_exit(NULL);
+}
+
+// ===========================================================================
+// thread function for client to cancel reservation
+// ===========================================================================
+void *cancel_res(void *arg) {
+    printf("\n\nCancel reservation\n\n");
+    pthread_exit(NULL);
+}
 
 int main(int argc, char const *argv[])
 {
@@ -19,7 +75,13 @@ int main(int argc, char const *argv[])
     int opt = 1;
     int addrlen = sizeof(address);
     char buffer[1024] = {0};
-    char *conMessage = "Connected";
+    char *conMessage = "\
+    Hello dear customer, what can we do for you today?\n\n\
+    [1] MAKE A RESERVATION\n\
+    [2] RESERVATION INQUIRY\n\
+    [3] MODIFY RESERVATION\n\
+    [4] CANCEL RESERVATION\n\n\
+    Please Select (Type exit to leave): ";
 
     // Create Socket File Descriptor
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
@@ -28,7 +90,7 @@ int main(int argc, char const *argv[])
         exit(EXIT_FAILURE);
     }
 
-    // Attach Socket To Port 8080
+    // Attach Socket To Port
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
     address.sin_port = htons(PORT);
@@ -61,7 +123,32 @@ int main(int argc, char const *argv[])
         valread = read(new_socket, buffer, 1024);
         if (buffer[0] != 0)
         {
-            printf("%s\n",buffer);
+
+            // Selection Handling
+            if (strcmp(buffer, "1") == 0)
+            {
+                printf("SELECTED 1\n");
+                send(new_socket, conMessage, strlen(conMessage), 0);
+            }
+            else if (strcmp(buffer, "2") == 0)
+            {
+                printf("SELECTED 2\n");
+                send(new_socket, conMessage, strlen(conMessage), 0);
+            }
+            else if (strcmp(buffer, "3") == 0)
+            {
+                printf("SELECTED 3\n");
+                send(new_socket, conMessage, strlen(conMessage), 0);
+            }
+            else if (strcmp(buffer, "4") == 0)
+            {
+                printf("SELECTED 4\n");
+                send(new_socket, conMessage, strlen(conMessage), 0);
+            }
+            else
+            {
+                send(new_socket, conMessage, strlen(conMessage), 0);
+            }
         }
         else
         {
