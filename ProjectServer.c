@@ -63,6 +63,7 @@ void make_res() {
         valread = read(new_socket, buffer, 1024);
         memset(name, '\0', sizeof(name));
         strcpy(name, buffer);
+        memset(buffer, 0, sizeof(buffer));
                         
         // asks for birthdate of customer
         char *birthdate_msg = "Please enter date of birth (01-01-0001): ";
@@ -70,6 +71,7 @@ void make_res() {
         valread = read(new_socket, buffer, 1024);
         memset(dob, '\0', sizeof(dob));
         strcpy(dob, buffer);
+        memset(buffer, 0, sizeof(buffer));
                     
         // asks for gender of customer
         char *gender_msg = "Please enter gender (male or female): ";
@@ -77,6 +79,7 @@ void make_res() {
         valread = read(new_socket, buffer, 1024);
         memset(gender, '\0', sizeof(gender));
         strcpy(gender, buffer);
+        memset(buffer, 0, sizeof(buffer));
 
         // asks for government ID of customer    
         char *id_msg = "Please enter government ID number: ";
@@ -84,6 +87,7 @@ void make_res() {
         valread = read(new_socket, buffer, 1024);
         memset(id, '\0', sizeof(id));
         strcpy(id, buffer);
+        memset(buffer, 0, sizeof(buffer));
 
         // asks for date of travel/flight
         char *dot_msg = "Please enter the date you want to travel (01-01-0001): ";
@@ -91,6 +95,7 @@ void make_res() {
         valread = read(new_socket, buffer, 1024);
         memset(dot, '\0', sizeof(dot));
         strcpy(dot, buffer);
+        memset(buffer, 0, sizeof(buffer));
 
         // asks if customer would like to reserve a seat
         char *seat_msg = "Would you like to reserve a seat? [yes/no] ";
@@ -100,6 +105,7 @@ void make_res() {
             valread = read(new_socket, buffer, 1024);
             memset(choice, '\0', sizeof(choice));
             strcpy(choice, buffer);
+            memset(buffer, 0, sizeof(buffer));
                                 
             if (strcmp(choice, "yes") == 0) {
                 char *choose_msg = "show flight summary for client to choose seat\n";
@@ -144,6 +150,7 @@ void make_res() {
     valread = read(new_socket, buffer, 1024);
     memset(email, '\0', sizeof(email));
     strcpy(email, buffer);
+    memset(buffer, 0, sizeof(buffer));
             
     // asks for phone
     char *phone_msg = "Please enter your phone number: ";
@@ -151,13 +158,13 @@ void make_res() {
     valread = read(new_socket, buffer, 1024);
     memset(phone, '\0', sizeof(phone));
     strcpy(phone, buffer);
+    memset(buffer, 0, sizeof(buffer));
 
     // thank you message
     char thank_msg[100] = "\nThank you for making reservations with us! Here is your ticket number: ";
     char ticket_msg[15];
     sprintf(ticket_msg, "%d\n\n", ticket_num);
     send(new_socket, thank_msg, strlen(thank_msg), 0);
-    send(new_socket, ticket_msg, strlen(thank_msg), 0);
 }
 
 // ===========================================================================
