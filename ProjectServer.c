@@ -3,9 +3,12 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <sys/socket.h>
+#include <sys/types.h>
 #include <stdlib.h>
 #include <netinet/in.h>
 #include <string.h>
+#include <arpa/inet.h>
+#include <errno.h>
 
 // Set Port
 #define PORT 2000
@@ -27,7 +30,7 @@ char buffer[1024] = {0};
 // ===========================================================================
 // function to call when customer makes reservation for multiple people
 // ===========================================================================
-void client_append_receipt(char name[50], char dof[15], int seat_num, int ticket_num) {
+void client_append_receipt(char name[50], char dob[15], char gender[7], char id[15], char dof[15], int seat_num, int ticket_num) {
     FILE *fp;
     char filename[15];
 
@@ -39,7 +42,7 @@ void client_append_receipt(char name[50], char dof[15], int seat_num, int ticket
         exit(EXIT_FAILURE);
     }
 
-    fprintf(fp, "Name: %s\nDate of Flight: %s\nSeat number: %d\n\n", name, dof, seat_num);
+    fprintf(fp, "Name: %s\nDate of birth: %s\nGender: %s\nGovernment ID#: %s\nDate of Flight: %s\nSeat number: %d\n\n", name, dob, gender, id, dof, seat_num);
     fclose(fp);
 }
 
@@ -115,7 +118,7 @@ void make_res() {
         }
 
         // calls function to create and write info to text file
-        client_append_receipt(name, dot, seat, ticket_num);
+        client_append_receipt(name, dob, gender, id, dot, seat, ticket_num);
 
         // asks if customer would like to make a reservation for another person
         char *people_msg = "Would you like to add more people? [yes/no] ";
@@ -164,8 +167,44 @@ void make_res() {
 // thread function for client to inquire about reservation
 // ===========================================================================
 void inquire_res() {
-    printf("\n\nInquiry reservation\n\n");
-    pthread_exit(NULL);
+    FILE *fp;
+    char filename[15];
+    char ticket_num[15];
+
+    char *ticket_msg = "\nPlease enter ticket number: ";
+    send(new_socket, ticket_msg, strlen(ticket_msg), 0);
+    valread = read(new_socket, buffer, 1024);
+    strcpy(ticket_num, buffer);
+    memset(buffer, 0, sizeof(buffer));
+
+    sprintf(filename, "%s.txt", ticket_num);
+    fp = fopen(filename, "r");
+    if(fp == NULL) {
+        char *error_msg = "Unable to find receipt.\n";
+        send(new_socket, error_msg, strlen(ticket_msg), 0);
+        exit(EXIT_FAILURE);
+    }
+
+    while(1) {
+        unsigned char buff[256] = {0};
+        int nread = fread(buff, 1, 256, fp);
+        printf("Bytes read %d\n", nread);
+
+        if(nread > 0) {
+            printf("Sending \n");
+            write(new_socket, buff, nread);
+        }
+
+        if(nread < 256) {
+            if(feof(fp))
+                printf("End of file.\n");
+            else if(feof(fp))
+                printf("Error reading.\n");
+            break;
+        }
+    }
+
+    fclose(fp);
 }
 
 // ===========================================================================
@@ -181,7 +220,6 @@ void *modify_res(void *arg) {
 // ===========================================================================
 void cancel_res() {
     printf("\n\nCancel reservation\n\n");
-    pthread_exit(NULL);
 }
 
 void *establishCon(void *threadID)
@@ -246,7 +284,7 @@ void *establishCon(void *threadID)
                 else if (strcmp(buffer, "2") == 0)
                 {
                     printf("SELECTED 2\n");
-                    send(new_socket, conMessage, strlen(conMessage), 0);
+                    inquire_res();
                 }
                 // Modify Reservations
                 else if (strcmp(buffer, "3") == 0)
@@ -317,7 +355,9 @@ int main(int argc, char const *argv[])
     {
         pthread_create(&clientThread, NULL, establishCon, &clientThread);
     }
-    pthread_join(clientThread, NULL);
+
+    for(int i=0; i<MAX_CLIENTS; i++)
+        pthread_join(clientThread, NULL);
 
     return 0;
 }
