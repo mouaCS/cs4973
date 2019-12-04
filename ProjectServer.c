@@ -100,24 +100,29 @@ void make_res() {
         // asks if customer would like to reserve a seat
         char *seat_msg = "Would you like to reserve a seat? [yes/no] ";
 
-        while((strcmp(choice, "no") != 0) || (strcmp(choice, "yes") != 0)) {
+        while((strcmp(choice, "no") != 0) || (strcmp(choice, "yes") != 0))
+        {
             send(new_socket, seat_msg, strlen(seat_msg), 0);
             valread = read(new_socket, buffer, 1024);
             memset(choice, '\0', sizeof(choice));
             strcpy(choice, buffer);
             memset(buffer, 0, sizeof(buffer));
                                 
-            if (strcmp(choice, "yes") == 0) {
+            if (strcmp(choice, "yes") == 0)
+            {
                 char *choose_msg = "show flight summary for client to choose seat\n";
                 send(new_socket, choose_msg, strlen(choose_msg), 0);
                 break;
             }
-            else if (strcmp(choice, "no") == 0) {
+            else if (strcmp(choice, "no") == 0)
+            {
                 seat = 1 + rand() / (RAND_MAX / (150 - 1 + 1) + 1);
                 break;
             }
             else
+            {
                 send(new_socket, invalid_msg, strlen(invalid_msg), 0);
+            }
         }
 
         // calls function to create and write info to text file
@@ -132,15 +137,20 @@ void make_res() {
             valread = read(new_socket, buffer, 1024);
             memset(choice, '\0', sizeof(choice));
             strcpy(choice, buffer);
+            memset(buffer, 0, sizeof(buffer));
 
             if (strcmp(choice, "yes") == 0)
+            {
                 continue;
+            }
             else if (strcmp(choice, "no") == 0) {
                 add_people = 0;
                 break;
             }
             else
+            {
                 send(new_socket, invalid_msg, strlen(invalid_msg), 0);
+            }
         }
     }
 
