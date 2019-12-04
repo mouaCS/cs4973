@@ -158,6 +158,7 @@ void *make_res(void *arg) {
     sprintf(ticket_msg, "%d\n\n", ticket_num);
     send(new_socket, thank_msg, strlen(thank_msg), 0);
     send(new_socket, ticket_msg, strlen(thank_msg), 0);
+    return NULL;
 }
 
 // ===========================================================================
@@ -166,6 +167,7 @@ void *make_res(void *arg) {
 void *inquire_res(void *arg) {
     printf("\n\nInquiry reservation\n\n");
     pthread_exit(NULL);
+    return NULL;
 }
 
 // ===========================================================================
@@ -174,6 +176,7 @@ void *inquire_res(void *arg) {
 void *modify_res(void *arg) {
     printf("\n\nModify reservation\n\n");
     pthread_exit(NULL);
+    return NULL;
 }
 
 // ===========================================================================
@@ -182,6 +185,7 @@ void *modify_res(void *arg) {
 void *cancel_res(void *arg) {
     printf("\n\nCancel reservation\n\n");
     pthread_exit(NULL);
+    return NULL;
 }
 
 void *establishCon(void *threadID)
@@ -221,6 +225,12 @@ void *establishCon(void *threadID)
             valread = read(new_socket, buffer, 1024);
             if (buffer[0] != 0)
             {
+
+                // Thread For 
+                pthread_t selectionThread;
+
+
+
                 // -----------------------------
                 // FOR TESTING ONLY
                 // End Thread Completely
@@ -234,22 +244,26 @@ void *establishCon(void *threadID)
                 // -----------------------------
 
                 // Selection Handling
+                //
+                // Create Reservations
                 else if (strcmp(buffer, "1") == 0)
                 {
                     printf("SELECTED 1\n");
-                    make_res();
-                    continue;
+                    pthread_create(&selectionThread, NULL, make_res, NULL);
                 }
+                // Inquiries
                 else if (strcmp(buffer, "2") == 0)
                 {
                     printf("SELECTED 2\n");
                     send(new_socket, conMessage, strlen(conMessage), 0);
                 }
+                // Modify Reservations
                 else if (strcmp(buffer, "3") == 0)
                 {
                     printf("SELECTED 3\n");
                     send(new_socket, conMessage, strlen(conMessage), 0);
                 }
+                // Cancel Reservations
                 else if (strcmp(buffer, "4") == 0)
                 {
                     printf("SELECTED 4\n");
@@ -312,5 +326,7 @@ int main(int argc, char const *argv[])
     {
         pthread_create(&clientThread, NULL, establishCon, &clientThread);
     }
-    pthread_join(clientThread, NULL); 
+    pthread_join(clientThread, NULL);
+
+    return 0;
 }
