@@ -15,6 +15,15 @@
 #define TICKET_PRICE 450
 
 
+// Global Server Socket Variables
+int server_fd;
+int new_socket;
+int valread;
+struct sockaddr_in address;
+int opt = 1;
+int addrlen = sizeof(address);
+
+
 // ===========================================================================
 // thread function for client to make a reservation and ask for relevant info:
 // name, email, phone #, birth date, gender, government ID number, and flight date
@@ -65,15 +74,12 @@ void *cancel_res(void *arg) {
     pthread_exit(NULL);
 }
 
-int main(int argc, char const *argv[])
+void *establishCon(void *vargp)
 {
+    // Thread Running Boolean
     int keepRunning = 1;
-    int server_fd;
-    int new_socket;
-    int valread;
-    struct sockaddr_in address;
-    int opt = 1;
-    int addrlen = sizeof(address);
+
+    // Message Handling
     char buffer[1024] = {0};
     char *conMessage = "\
     Hello dear customer, what can we do for you today?\n\n\
@@ -82,30 +88,6 @@ int main(int argc, char const *argv[])
     [3] MODIFY RESERVATION\n\
     [4] CANCEL RESERVATION\n\n\
     Please Select (Type exit to leave): ";
-
-    // Create Socket File Descriptor
-    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
-    {
-        perror("socket failed");
-        exit(EXIT_FAILURE);
-    }
-
-    // Attach Socket To Port
-    address.sin_family = AF_INET;
-    address.sin_addr.s_addr = INADDR_ANY;
-    address.sin_port = htons(PORT);
-
-    if (bind(server_fd, (struct sockaddr *)&address, sizeof(address))<0)
-    {
-        perror("bind failed");
-        exit(EXIT_FAILURE);
-    }
-
-    if (listen(server_fd, 3) < 0)
-    {
-        perror("listen");
-        exit(EXIT_FAILURE);
-    }
 
     if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen))<0)
     {
@@ -156,5 +138,48 @@ int main(int argc, char const *argv[])
         }
 
     }
-    return 0;
+    return NULL;
+}
+
+
+
+//----------------
+//----------------
+// MAIN EXECUTION
+//----------------
+//----------------
+int main(int argc, char const *argv[])
+{
+
+    // Create Socket File Descriptor
+    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
+    {
+        perror("socket failed");
+        exit(EXIT_FAILURE);
+    }
+
+    // Attach Socket To Port
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = INADDR_ANY;
+    address.sin_port = htons(PORT);
+
+    if (bind(server_fd, (struct sockaddr *)&address, sizeof(address))<0)
+    {
+        perror("bind failed");
+        exit(EXIT_FAILURE);
+    }
+
+    if (listen(server_fd, 3) < 0)
+    {
+        perror("listen");
+        exit(EXIT_FAILURE);
+    }
+
+    pthread_t clientThread;
+    
+    for (int i = 0; i < 2; i++)
+    {
+        pthread_create(&clientThread, NULL, establishCon, NULL);
+    }
+    pthread_join(clientThread, NULL); 
 }
