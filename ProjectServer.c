@@ -32,7 +32,21 @@ void client_receipt(char name[50], char dof[15], int seat_num) {
 }
 
 // ===========================================================================
-// summary of flights based on dates
+// creates a file for the flight on a particular date
+// ===========================================================================
+void date_of_flight(void) {
+    FILE *fp;
+
+    fp = fopen("insert_date.txt", "ab+");
+
+    if(fp == NULL) {
+        printf("Unable to create file.\n");
+        exit(EXIT_FAILURE);
+    }
+}
+
+// ===========================================================================
+// function that is the seat manager of a flight based on date
 // ===========================================================================
 void flight_seat_manager(void) {
     File *fp;
@@ -51,50 +65,58 @@ void flight_seat_manager(void) {
 // ===========================================================================
 void *make_res(void *arg) {
     int add_people = 1;
-    int seat number = 0;
-    char name[50]; // full name of client
-    char dob[15]; // date of birth
-    char gender[10];
-    char id[15]; // government id #
-    char dot[15]; // date of travel
-    char email[100];
-    char phone[15];
+    int seat = 0;
+    int count = 1;
+    char name[50], dob[12], gender[7], id[15], dot[12];
+    char email[100], phone[15];
     char choice[5];
 
     while(add_people == 1) {
+        // asks for full name of customer
         printf("\nPlease enter full name: ");
-        fgets(name, sizeof(name), stdin);
+        scanf(" %[^\n]", name);
     
+        // asks for birthdate of customer
         printf("Please enter date of birth (01/01/0001): ");
-        fgets(dob, sizeof(dob), stdin);
+        scanf(" %[^\n]", dob);
     
+        // asks for gender of customer
         printf("Please enter gender (male or female): ");
-        fgets(gender, sizeof(gender), stdin);
-    
+        scanf(" %[^\n]", gender);
+
+        // asks for government ID of customer    
         printf("Please enter government ID number: ");
-        fgets(id, sizeof(id), stdin);
+        scanf(" %[^\n]", id);
+
+        // asks for date of travel/flight
+        printf("Please enter the date you want to travel (01/01/0001): ");
+        scanf(" %[^\n]", dot);
+
+        // asks if customer would like to reserve a seat
+        printf("Would you like to reserve a seat? [yes/no] ");
+        scanf(" %[^\n]", choice);
     
-        printf("Would you like to reserve a seat?");
-        fgets(choice, sizeof(choice), stdin);
-    
-        if (strcmp(choice, "yes") == 0)
-            printf("show flight summary for client to choose seat");
+        if (strcmp(choice, "yes") == 0) {
+            printf("show flight summary for client to choose seat\n\n");
+        }
         else if (strcmp(choice, "no") == 0)
-            printf("randomly choose seat for client");
+            seat = 1 + rand() / (RAND_MAX / (150 - 1 + 1) + 1);
 
         client_receipt(name, gender, seat);
 
-        printf("Would you like to add more people?");
+        // asks if customer would like to make a reservation for another person
+        printf("Would you like to add more people? [yes/no] ");
+        scanf(" %[^\n]", choice);
 
-        if (strcmp(choice, "yes") == 0)
-            continue;
-        else if (strcmp(choice, "no") == 0) {
-            printf("\nYou're almost done!!\n\nPlease enter your email: ");
-            fgets(email, sizeof(email), stdin);
-            printf("Please enter your phone number: ");
-            fgets(email, sizeof(email), stdin);
-        }
+        if (strcmp(choice, "no") == 0)
+            add_people = 0;
     }
+
+    printf("\nYou're almost done!!\n\nPlease enter your email: ");
+    scanf(" %[^\n]", email);
+    
+    printf("Please enter your phone number: ");
+    scanf(" %[^\n]", phone);
 
     pthread_exit(NULL);
 }
