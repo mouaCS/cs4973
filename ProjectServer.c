@@ -286,7 +286,7 @@ void *establishCon(void *threadID)
                 else if (strcmp(buffer, "1") == 0)
                 {
                     printf("SELECTED 1...\n");
-                    pthread_mutex_lock(&lock); 
+                    pthread_mutex_lock(&lock);
                     make_res(new_socket);
                     pthread_mutex_unlock(&lock);
                 }
@@ -300,7 +300,9 @@ void *establishCon(void *threadID)
                 else if (strcmp(buffer, "3") == 0)
                 {
                     printf("SELECTED 3...\n");
+                    pthread_mutex_lock(&lock); 
                     send(new_socket, conMessage, strlen(conMessage), 0);
+                    pthread_mutex_unlock(&lock);
                 }
                 // Cancel Reservations
                 else if (strcmp(buffer, "4") == 0)
