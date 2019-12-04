@@ -74,10 +74,13 @@ void *cancel_res(void *arg) {
     pthread_exit(NULL);
 }
 
-void *establishCon(void *vargp)
+void *establishCon(void *threadID)
 {
+    int *id = (int *)threadID;
+
     // Thread Running Boolean
     int keepRunning = 1;
+    int end = 0;
 
     // Message Handling
     char buffer[1024] = {0};
@@ -89,54 +92,71 @@ void *establishCon(void *vargp)
     [4] CANCEL RESERVATION\n\n\
     Please Select (Type exit to leave): ";
 
-    if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen))<0)
+    // Encapsulating Thread Loop
+    while (end != 1)
     {
-        perror("accept");
-        exit(EXIT_FAILURE);
-    }
-    // Send Connection Message
-    send(new_socket, conMessage, strlen(conMessage), 0);
+        if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen))<0)
+        {
+            perror("accept");
+            exit(EXIT_FAILURE);
+        }
+        // Send Connection Message
+        send(new_socket, conMessage, strlen(conMessage), 0);
 
-    while (keepRunning == 1)
-    {
-
-        // Read Client Message To Buffer
-        char buffer[1024] = {0};
-        valread = read(new_socket, buffer, 1024);
-        if (buffer[0] != 0)
+        // Loop For Single Client
+        while (keepRunning == 1)
         {
 
-            // Selection Handling
-            if (strcmp(buffer, "1") == 0)
+            // Read Client Message To Buffer
+            char buffer[1024] = {0};
+            valread = read(new_socket, buffer, 1024);
+            if (buffer[0] != 0)
             {
-                printf("SELECTED 1\n");
-                send(new_socket, conMessage, strlen(conMessage), 0);
-            }
-            else if (strcmp(buffer, "2") == 0)
-            {
-                printf("SELECTED 2\n");
-                send(new_socket, conMessage, strlen(conMessage), 0);
-            }
-            else if (strcmp(buffer, "3") == 0)
-            {
-                printf("SELECTED 3\n");
-                send(new_socket, conMessage, strlen(conMessage), 0);
-            }
-            else if (strcmp(buffer, "4") == 0)
-            {
-                printf("SELECTED 4\n");
-                send(new_socket, conMessage, strlen(conMessage), 0);
+                // -----------------------------
+                // FOR TESTING ONLY
+                // End Thread Completely
+                if (strcmp(buffer, "end") == 0)
+                {
+                    keepRunning = 0;
+                    end = 1;
+                    printf("ENDING THREAD\n");
+                }
+                // FOR TESTING ONLY
+                // -----------------------------
+
+                // Selection Handling
+                else if (strcmp(buffer, "1") == 0)
+                {
+                    printf("SELECTED 1\n");
+                    send(new_socket, conMessage, strlen(conMessage), 0);
+                }
+                else if (strcmp(buffer, "2") == 0)
+                {
+                    printf("SELECTED 2\n");
+                    send(new_socket, conMessage, strlen(conMessage), 0);
+                }
+                else if (strcmp(buffer, "3") == 0)
+                {
+                    printf("SELECTED 3\n");
+                    send(new_socket, conMessage, strlen(conMessage), 0);
+                }
+                else if (strcmp(buffer, "4") == 0)
+                {
+                    printf("SELECTED 4\n");
+                    send(new_socket, conMessage, strlen(conMessage), 0);
+                }
+                else
+                {
+                    send(new_socket, conMessage, strlen(conMessage), 0);
+                }
             }
             else
             {
-                send(new_socket, conMessage, strlen(conMessage), 0);
+                // End Thread
+                keepRunning = 0;
             }
-        }
-        else
-        {
-            keepRunning = 0;
-        }
 
+        }
     }
     return NULL;
 }
@@ -150,6 +170,7 @@ void *establishCon(void *vargp)
 //----------------
 int main(int argc, char const *argv[])
 {
+    int MAX_CLIENTS = 100;
 
     // Create Socket File Descriptor
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
@@ -175,11 +196,13 @@ int main(int argc, char const *argv[])
         exit(EXIT_FAILURE);
     }
 
+
+    // Thread Handling
     pthread_t clientThread;
     
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < MAX_CLIENTS; i++)
     {
-        pthread_create(&clientThread, NULL, establishCon, NULL);
+        pthread_create(&clientThread, NULL, establishCon, &clientThread);
     }
     pthread_join(clientThread, NULL); 
 }
