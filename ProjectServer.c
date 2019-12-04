@@ -83,19 +83,23 @@ void *make_res(void *arg) {
         else if (strcmp(choice, "no") == 0)
             seat = 1 + rand() / (RAND_MAX / (150 - 1 + 1) + 1);
 
-        client_receipt(name, gender, seat);
+        // calls function to create and write info to text file
+        client_receipt(name, dot, seat);
 
         // asks if customer would like to make a reservation for another person
         printf("Would you like to add more people? [yes/no] ");
         scanf(" %[^\n]", choice);
 
+        // exit loop after done adding all relevant info for reservation
         if (strcmp(choice, "no") == 0)
             add_people = 0;
     }
 
+    // asks for email
     printf("\nYou're almost done!!\n\nPlease enter your email: ");
     scanf(" %[^\n]", email);
     
+    // asks for phone
     printf("Please enter your phone number: ");
     scanf(" %[^\n]", phone);
 
