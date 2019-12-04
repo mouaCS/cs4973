@@ -47,7 +47,7 @@ void client_append_receipt(char name[50], char dof[15], int seat_num, int ticket
 // section handles making reservation and ask for relevant info:
 // name, email, phone #, birth date, gender, government ID number, and flight date
 // ===========================================================================
-void *make_res(void *arg) {
+void make_res() {
     int ticket_num = rand();
     int add_people = 1;
     int seat;
@@ -158,16 +158,14 @@ void *make_res(void *arg) {
     sprintf(ticket_msg, "%d\n\n", ticket_num);
     send(new_socket, thank_msg, strlen(thank_msg), 0);
     send(new_socket, ticket_msg, strlen(thank_msg), 0);
-    return NULL;
 }
 
 // ===========================================================================
 // thread function for client to inquire about reservation
 // ===========================================================================
-void *inquire_res(void *arg) {
+void inquire_res() {
     printf("\n\nInquiry reservation\n\n");
     pthread_exit(NULL);
-    return NULL;
 }
 
 // ===========================================================================
@@ -176,16 +174,14 @@ void *inquire_res(void *arg) {
 void *modify_res(void *arg) {
     printf("\n\nModify reservation\n\n");
     pthread_exit(NULL);
-    return NULL;
 }
 
 // ===========================================================================
 // thread function for client to cancel reservation
 // ===========================================================================
-void *cancel_res(void *arg) {
+void cancel_res() {
     printf("\n\nCancel reservation\n\n");
     pthread_exit(NULL);
-    return NULL;
 }
 
 void *establishCon(void *threadID)
@@ -226,11 +222,6 @@ void *establishCon(void *threadID)
             if (buffer[0] != 0)
             {
 
-                // Thread For 
-                pthread_t selectionThread;
-
-
-
                 // -----------------------------
                 // FOR TESTING ONLY
                 // End Thread Completely
@@ -249,7 +240,7 @@ void *establishCon(void *threadID)
                 else if (strcmp(buffer, "1") == 0)
                 {
                     printf("SELECTED 1\n");
-                    pthread_create(&selectionThread, NULL, make_res, NULL);
+                    make_res();
                 }
                 // Inquiries
                 else if (strcmp(buffer, "2") == 0)
