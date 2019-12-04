@@ -48,7 +48,7 @@ void client_append_receipt(char name[50], char dob[15], char gender[7], char id[
 // section handles making reservation and ask for relevant info:
 // name, email, phone #, birth date, gender, government ID number, and flight date
 // ===========================================================================
-void make_res() {
+void make_res(int new_socket) {
     int ticket_num = rand();
     int add_people = 1;
     int seat;
@@ -222,7 +222,12 @@ void cancel_res() {
 
 void *establishCon(void *threadID)
 {
+    // Thread ID
     int *id = (int *)threadID;
+
+    int new_socket;
+
+    pthread_mutex_t lock;
 
     // Thread Running Boolean
     int keepRunning = 1;
@@ -237,14 +242,17 @@ void *establishCon(void *threadID)
     [4] CANCEL RESERVATION\n\n\
     Please Select (Type exit to leave): ";
 
+    
     // Encapsulating Thread Loop
     while (end != 1)
     {
+        // Accept Connection And Create New Socket For It
         if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen))<0)
         {
             perror("accept");
             exit(EXIT_FAILURE);
         }
+        printf("TID: %d\n",*id);
         // Send Connection Message
         send(new_socket, conMessage, strlen(conMessage), 0);
 
@@ -275,25 +283,27 @@ void *establishCon(void *threadID)
                 // Create Reservations
                 else if (strcmp(buffer, "1") == 0)
                 {
-                    printf("SELECTED 1\n");
-                    make_res();
+                    printf("SELECTED 1...\n");
+                    pthread_mutex_lock(&lock); 
+                    make_res(new_socket);
+                    pthread_mutex_unlock(&lock);
                 }
                 // Inquiries
                 else if (strcmp(buffer, "2") == 0)
                 {
-                    printf("SELECTED 2\n");
+                    printf("SELECTED 2...\n");
                     inquire_res();
                 }
                 // Modify Reservations
                 else if (strcmp(buffer, "3") == 0)
                 {
-                    printf("SELECTED 3\n");
+                    printf("SELECTED 3...\n");
                     send(new_socket, conMessage, strlen(conMessage), 0);
                 }
                 // Cancel Reservations
                 else if (strcmp(buffer, "4") == 0)
                 {
-                    printf("SELECTED 4\n");
+                    printf("SELECTED 4...\n");
                     send(new_socket, conMessage, strlen(conMessage), 0);
                 }
                 else
@@ -319,7 +329,7 @@ void *establishCon(void *threadID)
 //----------------
 int main(int argc, char const *argv[])
 {
-    int MAX_CLIENTS = 100;
+    int MAX_CLIENTS = 3;
 
     // Create Socket File Descriptor
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
@@ -347,15 +357,16 @@ int main(int argc, char const *argv[])
 
 
     // Thread Handling
-    pthread_t clientThread;
+    pthread_t clientThread[300];
     
     for (int i = 0; i < MAX_CLIENTS; i++)
     {
-        pthread_create(&clientThread, NULL, establishCon, &clientThread);
+        pthread_create(&clientThread[i], NULL, establishCon, &clientThread[i]);
     }
-
-    for(int i=0; i<MAX_CLIENTS; i++)
-        pthread_join(clientThread, NULL);
+    for (int i = 0; i < MAX_CLIENTS; i++)
+    {
+        pthread_join(clientThread[i], NULL);
+    }
 
     return 0;
 }
