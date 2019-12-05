@@ -24,11 +24,12 @@ struct sockaddr_in address;
 int opt = 1;
 int addrlen = sizeof(address);
 char buffer[1024] = {0};
+char *file_error_msg = "Unable to create/open file.\n";
 
 // ===========================================================================
 // function to call when customer makes reservation for multiple people
 // ===========================================================================
-void client_append_receipt(char name[50], char dob[15], char gender[7], char id[15], char dof[15], int seat_num, int ticket_num) {
+void client_append_receipt(char name[50], char dob[15], char gender[7], char id[15], char dot[15], int seat_num, int ticket_num) {
     FILE *fp;
     char filename[15];
 
@@ -36,11 +37,85 @@ void client_append_receipt(char name[50], char dob[15], char gender[7], char id[
     fp = fopen(filename, "ab+");
 
     if(fp == NULL) {
-        printf("Unable to create file.\n");
+        send(new_socket, file_error_msg, strlen(file_error_msg), 0);
         exit(EXIT_FAILURE);
     }
 
-    fprintf(fp, "Name: %s\nDate of birth: %s\nGender: %s\nGovernment ID#: %s\nDate of Flight: %s\nSeat number: %d\n\n", name, dob, gender, id, dof, seat_num);
+    fprintf(fp, "Name: %s\nDate of birth: %s\nGender: %s\nGovernment ID#: %s\nDate of Flight: %s\nSeat number: %d\n\n", name, dob, gender, id, dot, seat_num);
+    fclose(fp);
+}
+
+// ===========================================================================
+// creates a new text file based on the date of flight
+// creates 150 "vacant" seats in the file
+// ===========================================================================
+void date_file(char dot[15]) {
+    FILE *fp;
+    char filename[20];
+
+    sprintf(filename, "%s.txt", dot);
+    if(!(fp = fopen(filename, "rb"))) {
+        fp = fopen(filename, "wb+");
+    }
+    else {
+        printf("date of flight file exists.\n");
+        fclose(fp);
+    }
+
+    for(int i=0; i<SEATS; i++)
+        fprintf(fp, "%03d vacant\n", i+1);
+
+    fclose(fp);
+}
+
+// ===========================================================================
+// function to call whenever client enters date of travel
+// also keeps track of vacant or occupied seats
+// ===========================================================================
+void seat_manager(char name[50], char gender[7], char dot[15], char choice[5]) {
+    FILE *fp;
+    FILE *ftemp;
+    char filename[20], filetmp[20], newline[75], cmp[20];
+    char *choose_msg = "Type any number with a vacant label.\n\n";
+    int new_seat = 0;
+
+    sprintf(filename, "%s.txt", dot);
+    sprintf(filetmp, "%s.tmp", dot);
+    fp = fopen(filename, "r");
+    ftemp = fopen(filetmp, "w");
+    if(fp == NULL) {
+        send(new_socket, file_error_msg, strlen(file_error_msg), 0);
+        exit(EXIT_FAILURE);
+    }
+
+    // if(strcmp(choice, "yes") == 0) {
+    //     send(new_socket, choose_msg, strlen(choose_msg), 0);
+    //     while(1) {
+    //         unsigned char buff[1024] = {0};
+    //         int nread = fread(buff, 1, 1024, fp);
+    //         printf("Bytes read %d\n", nread);
+
+    //         if(nread > 0) {
+    //             printf("Sending \n");
+    //             write(new_socket, buff, nread);
+    //         }
+
+    //         if(nread < 1024) {
+    //             if(feof(fp))
+    //                 printf("End of file.\n");
+    //             else if(feof(fp))
+    //                 printf("Error reading.\n");
+    //             break;
+    //         }
+    //     }
+    //     // sprintf(newline, "%03d %s %s", new_seat, name, gender);
+    // }
+    // else if(strcmp(choice, "no") == 0) {
+    //     new_seat = 1 + rand() / (RAND_MAX / (150 - 1 + 1) + 1);
+    //     sprintf(newline, "%03d %s %s", new_seat, name, gender);
+    //     sprintf(cmp, "%03d vacant", new_seat);
+    // }
+
     fclose(fp);
 }
 
@@ -51,7 +126,7 @@ void client_append_receipt(char name[50], char dob[15], char gender[7], char id[
 void make_res() {
     int ticket_num = rand();
     int add_people = 1;
-    int seat;
+    int seat_num;
     char name[50], dob[12], gender[7], id[15], dot[12];
     char email[100], phone[15];
     char choice[5];
@@ -92,23 +167,19 @@ void make_res() {
         valread = read(new_socket, buffer, 1024);
         strcpy(dot, buffer);
         memset(buffer, 0, sizeof(buffer));
+        date_file(dot);
 
-        // asks if customer would like to reserve a seat
+        // asks if customer would like to reserve a seat_num
         char *seat_msg = "Would you like to reserve a seat? [yes/no] ";
-
-        while((strcmp(choice, "no") != 0) || (strcmp(choice, "yes") != 0)) {
+        while(1) {
             send(new_socket, seat_msg, strlen(seat_msg), 0);
             valread = read(new_socket, buffer, 1024);
             strcpy(choice, buffer);
             memset(buffer, 0, sizeof(buffer));
-                                
-            if (strcmp(choice, "yes") == 0) {
-                char *choose_msg = "show flight summary for client to choose seat\n";
-                send(new_socket, choose_msg, strlen(choose_msg), 0);
-                break;
-            }
-            else if (strcmp(choice, "no") == 0) {
-                seat = 1 + rand() / (RAND_MAX / (150 - 1 + 1) + 1);
+
+            if ((strcmp(choice, "yes") == 0) || (strcmp(choice, "no") == 0)) {
+                printf("Wants to pick out seat_num.\n");
+                seat_manager(name, gender, dot, choice);
                 break;
             }
             else
@@ -116,13 +187,13 @@ void make_res() {
         }
 
         // calls function to create and write info to text file
-        client_append_receipt(name, dob, gender, id, dot, seat, ticket_num);
+        client_append_receipt(name, dob, gender, id, dot, seat_num, ticket_num);
 
         // asks if customer would like to make a reservation for another person
         char *people_msg = "Would you like to add more people? [yes/no] ";
                 
         // exit loop after done adding all relevant info for reservation
-        while((strcmp(choice, "no") != 0) || (strcmp(choice, "yes") != 0)) {
+        while(1) {
             send(new_socket, people_msg, strlen(people_msg), 0);
             valread = read(new_socket, buffer, 1024);
             strcpy(choice, buffer);
@@ -178,8 +249,8 @@ void inquire_res() {
     sprintf(filename, "%s.txt", ticket_num);
     fp = fopen(filename, "r");
     if(fp == NULL) {
-        char *error_msg = "Unable to find receipt.\n";
-        send(new_socket, error_msg, strlen(ticket_msg), 0);
+        char *receipt_error_msg = "Unable to find file.\n";
+        send(new_socket, receipt_error_msg, strlen(ticket_msg), 0);
         exit(EXIT_FAILURE);
     }
 
@@ -297,9 +368,7 @@ void *establishCon(void *threadID)
                     send(new_socket, conMessage, strlen(conMessage), 0);
                 }
                 else
-                {
                     send(new_socket, conMessage, strlen(conMessage), 0);
-                }
             }
             else
             {
@@ -312,11 +381,9 @@ void *establishCon(void *threadID)
     return NULL;
 }
 
-//----------------
-//----------------
+// ===========================================================================
 // MAIN EXECUTION
-//----------------
-//----------------
+// ===========================================================================
 int main(int argc, char const *argv[])
 {
     int MAX_CLIENTS = 100;
@@ -350,9 +417,7 @@ int main(int argc, char const *argv[])
     pthread_t clientThread;
     
     for (int i = 0; i < MAX_CLIENTS; i++)
-    {
         pthread_create(&clientThread, NULL, establishCon, &clientThread);
-    }
 
     for(int i=0; i<MAX_CLIENTS; i++)
         pthread_join(clientThread, NULL);
