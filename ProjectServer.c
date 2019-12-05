@@ -49,13 +49,59 @@ void client_append_receipt(char name[50], char dob[15], char gender[7], char id[
 }
 
 // ===========================================================================
+// creates a new text file based on the date of flight
+// creates 150 "vacant" seats in the file
+// ===========================================================================
+void date_file(char dot[15]) {
+    FILE *fp;
+    char filename[20];
+
+    sprintf(filename, "%s.txt", dot);
+    if(!(fp = fopen(filename, "rb"))) {
+        fp = fopen(filename, "wb+");
+    }
+    else {
+        printf("date of flight file exists.\n");
+        fclose(fp);
+    }
+
+    for(int i=0; i<SEATS; i++)
+        fprintf(fp, "%03d vacant\n", i+1);
+
+    fclose(fp);
+}
+
+// ===========================================================================
+// function to call whenever client enters date of travel
+// also keeps track of vacant or occupied seats
+// ===========================================================================
+void seat_manager(char name[50], char gender[7], char dot[15], char choice[5]) {
+    FILE *fp;
+    FILE *ftemp;
+    char filename[20], filetmp[20], newline[75], cmp[20];
+    char *choose_msg = "Type any number with a vacant label.\n\n";
+    int new_seat = 0;
+
+    sprintf(filename, "%s.txt", dot);
+    sprintf(filetmp, "%s.tmp", dot);
+    fp = fopen(filename, "r");
+    ftemp = fopen(filetmp, "w");
+    if(fp == NULL) {
+        send(new_socket, file_error_msg, strlen(file_error_msg), 0);
+        exit(EXIT_FAILURE);
+    }
+
+    fclose(fp);
+}
+
+// ===========================================================================
 // section handles making reservation and ask for relevant info:
 // name, email, phone #, birth date, gender, government ID number, and flight date
 // ===========================================================================
-void make_res(int new_socket) {
+void make_res() {
     int ticket_num = rand();
     int add_people = 1;
-    int seat;
+    int seat_num;
     char name[50], dob[12], gender[7], id[15], dot[12];
     char email[100], phone[15];
     char choice[5];
@@ -96,23 +142,19 @@ void make_res(int new_socket) {
         valread = read(new_socket, buffer, 1024);
         strcpy(dot, buffer);
         memset(buffer, 0, sizeof(buffer));
+        date_file(dot);
 
-        // asks if customer would like to reserve a seat
+        // asks if customer would like to reserve a seat_num
         char *seat_msg = "Would you like to reserve a seat? [yes/no] ";
-
-        while((strcmp(choice, "no") != 0) || (strcmp(choice, "yes") != 0)) {
+        while(1) {
             send(new_socket, seat_msg, strlen(seat_msg), 0);
             valread = read(new_socket, buffer, 1024);
             strcpy(choice, buffer);
             memset(buffer, 0, sizeof(buffer));
-                                
-            if (strcmp(choice, "yes") == 0) {
-                char *choose_msg = "show flight summary for client to choose seat\n";
-                send(new_socket, choose_msg, strlen(choose_msg), 0);
-                break;
-            }
-            else if (strcmp(choice, "no") == 0) {
-                seat = 1 + rand() / (RAND_MAX / (150 - 1 + 1) + 1);
+
+            if ((strcmp(choice, "yes") == 0) || (strcmp(choice, "no") == 0)) {
+                printf("Wants to pick out seat_num.\n");
+                seat_manager(name, gender, dot, choice);
                 break;
             }
             else
@@ -120,13 +162,13 @@ void make_res(int new_socket) {
         }
 
         // calls function to create and write info to text file
-        client_append_receipt(name, dob, gender, id, dot, seat, ticket_num);
+        client_append_receipt(name, dob, gender, id, dot, seat_num, ticket_num);
 
         // asks if customer would like to make a reservation for another person
         char *people_msg = "Would you like to add more people? [yes/no] ";
                 
         // exit loop after done adding all relevant info for reservation
-        while((strcmp(choice, "no") != 0) || (strcmp(choice, "yes") != 0)) {
+        while(1) {
             send(new_socket, people_msg, strlen(people_msg), 0);
             valread = read(new_socket, buffer, 1024);
             strcpy(choice, buffer);
@@ -261,13 +303,11 @@ void *establishCon(void *threadID)
         // Loop For Single Client
         while (keepRunning == 1)
         {
-
             // Read Client Message To Buffer
             char buffer[1024] = {0};
             valread = read(new_socket, buffer, 1024);
             if (buffer[0] != 0)
             {
-
                 // -----------------------------
                 // FOR TESTING ONLY
                 // End Thread Completely
@@ -311,9 +351,7 @@ void *establishCon(void *threadID)
                     send(new_socket, conMessage, strlen(conMessage), 0);
                 }
                 else
-                {
                     send(new_socket, conMessage, strlen(conMessage), 0);
-                }
             }
             else
             {
@@ -369,13 +407,10 @@ int main(int argc, char const *argv[])
     } 
     
     for (int i = 0; i < MAX_CLIENTS; i++)
-    {
         pthread_create(&clientThread[i], NULL, establishCon, &clientThread[i]);
-    }
+
     for (int i = 0; i < MAX_CLIENTS; i++)
-    {
         pthread_join(clientThread[i], NULL);
-    }
 
     return 0;
 }
