@@ -29,6 +29,22 @@ char read_only_message[10] = "READ ONLY";
 // Mutex Lock
 pthread_mutex_t lock;
 
+
+// Messages Requesting Client Response
+char *client_req(int new_socket, char *msg)
+{
+    char tBuffer[1024] = {0};
+    char response[80];
+
+    send(new_socket, msg, strlen(msg), 0);
+    valread = read(new_socket, tBuffer, 1024);
+    strcpy(response, tBuffer);
+    memset(tBuffer, 0, sizeof(tBuffer));
+
+    char *returnString = response;
+    return returnString;
+}
+
 // ===========================================================================
 // function to call when customer makes reservation for multiple people
 // ===========================================================================
@@ -108,105 +124,97 @@ void make_res(int new_socket) {
     char choice[5];
     char *invalid_msg = "Invalid answer. Please answer yes or no.\n";
 
+
+    char *name_msg = "\nPlease enter full name: ";
+    char *birthdate_msg = "Please enter date of birth (01-01-0001): ";
+    char *gender_msg = "Please enter gender (male or female): ";
+    char *id_msg = "Please enter government ID number: ";
+    char *dot_msg = "Please enter the date you want to travel (01-01-0001): ";
+    char *seat_msg = "Would you like to reserve a seat? [yes/no] ";
+    char *people_msg = "Would you like to add more people? [yes/no] ";
+    char *email_msg = "\nYou're almost done!!\n\nPlease enter your email: ";
+    char *phone_msg = "Please enter your phone number: ";
+    char thank_msg[100] = "\nThank you for making reservations with us!\n Here is your ticket number: ";
+
     while(add_people == 1) {
         // asks for full name of customer
-        char *name_msg = "\nPlease enter full name: ";
-        send(new_socket, name_msg, strlen(name_msg), 0);
-        valread = read(new_socket, buffer, 1024);
-        strcpy(name, buffer);
-        memset(buffer, 0, sizeof(buffer));
+        strcpy(name, client_req(new_socket, name_msg));
                         
         // asks for birthdate of customer
-        char *birthdate_msg = "Please enter date of birth (01-01-0001): ";
-        send(new_socket, birthdate_msg, strlen(birthdate_msg), 0);
-        valread = read(new_socket, buffer, 1024);
-        strcpy(dob, buffer);
-        memset(buffer, 0, sizeof(buffer));
+        strcpy(dob, client_req(new_socket, birthdate_msg));
                     
         // asks for gender of customer
-        char *gender_msg = "Please enter gender (male or female): ";
-        send(new_socket, gender_msg, strlen(gender_msg), 0);
-        valread = read(new_socket, buffer, 1024);
-        strcpy(gender, buffer);
-        memset(buffer, 0, sizeof(buffer));
+        strcpy(gender, client_req(new_socket, gender_msg));
 
-        // asks for government ID of customer    
-        char *id_msg = "Please enter government ID number: ";
-        send(new_socket, id_msg, strlen(id_msg), 0);
-        valread = read(new_socket, buffer, 1024);
-        strcpy(id, buffer);
-        memset(buffer, 0, sizeof(buffer));
+        // asks for government ID of customer
+        strcpy(id, client_req(new_socket, id_msg));
 
         // asks for date of travel/flight
-        char *dot_msg = "Please enter the date you want to travel (01-01-0001): ";
-        send(new_socket, dot_msg, strlen(dot_msg), 0);
-        valread = read(new_socket, buffer, 1024);
-        strcpy(dot, buffer);
-        memset(buffer, 0, sizeof(buffer));
+        strcpy(dot, client_req(new_socket, dot_msg));
         date_file(dot);
 
         // asks if customer would like to reserve a seat_num
-        char *seat_msg = "Would you like to reserve a seat? [yes/no] ";
-        while(1) {
-            send(new_socket, seat_msg, strlen(seat_msg), 0);
-            valread = read(new_socket, buffer, 1024);
-            strcpy(choice, buffer);
-            memset(buffer, 0, sizeof(buffer));
+        while(1)
+        {
+            strcpy(choice, client_req(new_socket, seat_msg));
 
-            if ((strcmp(choice, "yes") == 0) || (strcmp(choice, "no") == 0)) {
+            if ((strcmp(choice, "yes") == 0) || (strcmp(choice, "no") == 0))
+            {
                 printf("Wants to pick out seat_num.\n");
                 seat_manager(name, gender, dot, choice,new_socket);
                 break;
             }
             else
+            {
+                // send read only message
+                send(new_socket, read_only_message, strlen(read_only_message), 0);
+                read(new_socket, buffer, 1024);
+                memset(buffer, 0, sizeof(buffer));
                 send(new_socket, invalid_msg, strlen(invalid_msg), 0);
+            }
         }
 
         // calls function to create and write info to text file
         client_append_receipt(name, dob, gender, id, dot, seat_num, ticket_num);
-
-        // asks if customer would like to make a reservation for another person
-        char *people_msg = "Would you like to add more people? [yes/no] ";
                 
         // exit loop after done adding all relevant info for reservation
-        while(1) {
-            send(new_socket, people_msg, strlen(people_msg), 0);
-            valread = read(new_socket, buffer, 1024);
-            strcpy(choice, buffer);
-            memset(buffer, 0, sizeof(buffer));
+        while(1)
+        {
+            strcpy(choice, client_req(new_socket, people_msg));
 
             if (strcmp(choice, "yes") == 0)
+            {
                 break;
-            else if (strcmp(choice, "no") == 0) {
+            }
+            else if (strcmp(choice, "no") == 0)
+            {
                 add_people = 0;
                 break;
             }
             else
+            {
+                // send read only message
+                send(new_socket, read_only_message, strlen(read_only_message), 0);
+                read(new_socket, buffer, 1024);
+                memset(buffer, 0, sizeof(buffer));
                 send(new_socket, invalid_msg, strlen(invalid_msg), 0);
+            }
         }
     }
 
     // asks for email
-    char *email_msg = "\nYou're almost done!!\n\nPlease enter your email: ";
-    send(new_socket, email_msg, strlen(email_msg), 0);
-    valread = read(new_socket, buffer, 1024);
-    strcpy(email, buffer);
-    memset(buffer, 0, sizeof(buffer));
+    strcpy(email, client_req(new_socket, email_msg));
             
     // asks for phone
-    char *phone_msg = "Please enter your phone number: ";
-    send(new_socket, phone_msg, strlen(phone_msg), 0);
-    valread = read(new_socket, buffer, 1024);
-    strcpy(phone, buffer);
-    memset(buffer, 0, sizeof(buffer));
-
+    strcpy(phone, client_req(new_socket, phone_msg));
 
     // send read only message
     send(new_socket, read_only_message, strlen(read_only_message), 0);
+    read(new_socket, buffer, 1024);
+    memset(buffer, 0, sizeof(buffer));
     // thank you message
-    char thank_msg[100] = "\nThank you for making reservations with us!\n Here is your ticket number: ";
     char ending_msg[130];
-    sprintf(ending_msg, "%s %d", thank_msg, ticket_num);
+    sprintf(ending_msg, "%s %d\n", thank_msg, ticket_num);
     send(new_socket, ending_msg, strlen(ending_msg), 0);
 }
 
@@ -221,10 +229,7 @@ void inquire_res(int new_socket) {
     char *ticket_msg = "\nPlease enter ticket number: ";
 
     // send ticket message
-    send(new_socket, ticket_msg, strlen(ticket_msg), 0);
-    valread = read(new_socket, buffer, 1024);
-    strcpy(ticket_num, buffer);
-    memset(buffer, 0, sizeof(buffer));
+    strcpy(ticket_num, client_req(new_socket, ticket_msg));
 
     sprintf(filename, "%s.txt", ticket_num);
     fp = fopen(filename, "r");
