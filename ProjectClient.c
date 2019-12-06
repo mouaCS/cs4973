@@ -39,15 +39,30 @@ int main(int argc, char const *argv[])
         return -1;
     }
 
-    // Read From Socket To Buffer
-    valread = read(sock, buffer, 1024);
-    printf("%s",buffer);
-
     while (runClient == 1)
     {
+        // Read From Socket To Buffer
+        memset(buffer, 0, sizeof(buffer));
+        valread = read(sock, buffer, 1024);
+
+        if (strcmp(buffer,"READ ONLY") == 0)
+        {
+            // Send Confirmation Of READ ONLY Receipt
+            send(sock, "read", 4, 0);
+
+            // Read Next Message Without Response
+            valread = read(sock, buffer, 1024);
+            printf("%s",buffer);
+            continue;
+        }
+
+        printf("%s",buffer);
+
         char input[30];
         char *conData;
         fgets(input, 30, stdin);
+
+        // Remove Newline From Input
         conData = strtok(input, "\n");
 
         // Exit From Client Loop
@@ -55,6 +70,7 @@ int main(int argc, char const *argv[])
         {
             runClient = 0;
         }
+
         // ------------------
         // FOR TESTING ONLY
         // Exit Thread
@@ -71,11 +87,6 @@ int main(int argc, char const *argv[])
         {
             send(sock, conData, strlen(conData), 0);
 
-
-            // Read Server Message To Buffer
-            char buffer[1024] = {0};
-            read(sock, buffer, 1024);
-            printf("%s",buffer);
         }
     }
 

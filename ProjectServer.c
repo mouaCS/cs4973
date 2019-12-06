@@ -18,12 +18,12 @@
 
 // Global Server Socket Variables
 int server_fd;
-int new_socket;
 int valread;
 struct sockaddr_in address;
 int opt = 1;
 int addrlen = sizeof(address);
 char buffer[1024] = {0};
+char read_only_message[10] = "READ ONLY";
 
 
 // Mutex Lock
@@ -75,7 +75,7 @@ void date_file(char dot[15]) {
 // function to call whenever client enters date of travel
 // also keeps track of vacant or occupied seats
 // ===========================================================================
-void seat_manager(char name[50], char gender[7], char dot[15], char choice[5]) {
+void seat_manager(char name[50], char gender[7], char dot[15], char choice[5], int new_socket) {
     FILE *fp;
     FILE *ftemp;
     char filename[20], filetmp[20], newline[75], cmp[20];
@@ -155,7 +155,7 @@ void make_res(int new_socket) {
 
             if ((strcmp(choice, "yes") == 0) || (strcmp(choice, "no") == 0)) {
                 printf("Wants to pick out seat_num.\n");
-                seat_manager(name, gender, dot, choice);
+                seat_manager(name, gender, dot, choice,new_socket);
                 break;
             }
             else
@@ -200,8 +200,11 @@ void make_res(int new_socket) {
     strcpy(phone, buffer);
     memset(buffer, 0, sizeof(buffer));
 
+
+    // send read only message
+    send(new_socket, read_only_message, strlen(read_only_message), 0);
     // thank you message
-    char thank_msg[100] = "\nThank you for making reservations with us! Here is your ticket number: ";
+    char thank_msg[100] = "\nThank you for making reservations with us!\n Here is your ticket number: ";
     char ending_msg[130];
     sprintf(ending_msg, "%s %d", thank_msg, ticket_num);
     send(new_socket, ending_msg, strlen(ending_msg), 0);
@@ -216,6 +219,8 @@ void inquire_res(int new_socket) {
     char ticket_num[15];
 
     char *ticket_msg = "\nPlease enter ticket number: ";
+
+    // send ticket message
     send(new_socket, ticket_msg, strlen(ticket_msg), 0);
     valread = read(new_socket, buffer, 1024);
     strcpy(ticket_num, buffer);
@@ -223,6 +228,13 @@ void inquire_res(int new_socket) {
 
     sprintf(filename, "%s.txt", ticket_num);
     fp = fopen(filename, "r");
+
+    // send read only message
+    send(new_socket, read_only_message, strlen(read_only_message), 0);
+    read(new_socket, buffer, 1024);
+    memset(buffer, 0, sizeof(buffer));
+
+    // attempt to find and send information to user.
     if(fp == NULL) {
         char *error_msg = "Unable to find receipt.\n";
         send(new_socket, error_msg, strlen(ticket_msg), 0);
@@ -296,12 +308,13 @@ void *establishCon(void *threadID)
             exit(EXIT_FAILURE);
         }
         printf("TID: %d\n",*id);
-        // Send Connection Message
-        send(new_socket, conMessage, strlen(conMessage), 0);
 
         // Loop For Single Client
         while (keepRunning == 1)
         {
+            // Send Default Message
+            send(new_socket, conMessage, strlen(conMessage), 0);
+
             // Read Client Message To Buffer
             char buffer[1024] = {0};
             valread = read(new_socket, buffer, 1024);
@@ -328,9 +341,6 @@ void *establishCon(void *threadID)
                     pthread_mutex_lock(&lock);
                     make_res(new_socket);
                     pthread_mutex_unlock(&lock);
-
-                    // Send Default Message Again
-                    send(new_socket, conMessage, strlen(conMessage), 0);
                 }
                 // Inquiries
                 else if (strcmp(buffer, "2") == 0)
@@ -342,7 +352,7 @@ void *establishCon(void *threadID)
                 else if (strcmp(buffer, "3") == 0)
                 {
                     printf("SELECTED 3...\n");
-                    pthread_mutex_lock(&lock); 
+                    pthread_mutex_lock(&lock);
                     send(new_socket, conMessage, strlen(conMessage), 0);
                     pthread_mutex_unlock(&lock);
                 }
