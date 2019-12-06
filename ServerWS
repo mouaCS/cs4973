@@ -384,6 +384,7 @@ void reserve(char str[])
 }
 void main(int argc, char **argv)
 {
+	// All used to test everything work correctly.
 	char str[1024] = "2!13122019^weizhong shao!07/04/1997!Man!20033155^SDQ QABS!01/02/1996!Woman!20349844";
 	//reserve(str);
 	//inqueryReceipt("1243755680.txt"); //
