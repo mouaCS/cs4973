@@ -116,7 +116,7 @@ void seat_manager(char name[50], char gender[7], char dot[15], char choice[5], i
 // name, email, phone #, birth date, gender, government ID number, and flight date
 // ===========================================================================
 void make_res(int new_socket) {
-    int ticket_num = rand();
+    int ticket_num = rand() % 9999;
     int add_people = 1;
     int seat_num;
     char name[50], dob[12], gender[7], id[15], dot[12];
@@ -272,7 +272,6 @@ void inquire_res(int new_socket) {
 // ===========================================================================
 void *modify_res(void *arg) {
     printf("\n\nModify reservation\n\n");
-    pthread_exit(NULL);
 }
 
 // ===========================================================================
