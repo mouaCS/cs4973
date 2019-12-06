@@ -1,0 +1,391 @@
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <memory.h>
+#include <time.h>
+
+typedef struct CSeat
+{
+	char m_Name[50];
+	char m_DoB[10];
+	char m_Gender[10];
+	char m_IDn[15];
+}CSeat;
+
+/*
+	Cases 10 for existing seat list, 11 for creating new one.
+	fileName for seat list, which is DoT.DAT. Return a struct shown above.
+*/
+struct CSeat * readData(char fileName[], int cases)
+{
+	struct CSeat * theSeats = (struct CSeat *)malloc(151*sizeof(theSeats[1]));
+	if(cases == 10) // Exist
+	{
+		FILE * fd=fopen(fileName,"rb");
+		fread(theSeats,1,sizeof(theSeats[0])*151,fd);
+		fclose(fd);
+	}
+	else // Or not
+	{
+		strcpy(&(theSeats->m_Name[0]), "0");
+	}
+	return theSeats;
+}
+
+/*
+	Write a struct as seat list, named DoT.DAT
+*/
+void writeDate(char fileName[], void * p)
+{
+	struct CSeat * theSeats = (struct CSeat *) p; 
+	FILE * fd=fopen(fileName,"wb");
+	fwrite(theSeats,1,sizeof(theSeats[0])*151,fd);
+	fclose(fd);
+}
+
+/*
+	Write a new receipt, called in reserve(). Use all personal infomation, wanted seats, contact information
+	and dateofTravel.
+*/
+void writeReceipt(char * info[], char * seats[], char * ci[], char dateofTravel[])
+{
+	int i = 0, j = 0;
+	char fileName[15];
+	srand((unsigned int)time(NULL));
+	int ticketNumber = rand();
+	sprintf(fileName, "%d.txt", ticketNumber);
+	FILE * fd=fopen(fileName,"wb");
+	fprintf(fd, "Ticket Number: %d\n", ticketNumber);
+	fprintf(fd, "E-mail: %s, Phone number: %s\n", ci[0], ci[1]);
+	fprintf(fd, "%s\n", dateofTravel);
+	fprintf(fd, "Reserved Seats: \n");
+	
+	while(seats[j])
+	{
+		fprintf(fd, "%s, ", seats[j]);
+		j++;
+	}
+	fprintf(fd, "\n");
+	while(info[i])
+	{
+		fprintf(fd, "Name: %s, DoB: %s, Gender: %s, ID: %s\n", info[i], info[i+1], info[i+2], info[i+3]);
+		i = i + 4;
+	}
+	fclose(fd);
+}
+
+/*
+	Inquery a existing receipt, fileName is receipt number.txt.
+	Then send receipt to client.
+*/
+void inqueryReceipt(char fileName[]) // Inquery
+{
+	FILE * fd=fopen(fileName,"rb");
+	char readline[100];
+	fgets(readline, 100, fd);
+	while(1)
+	{
+		printf("%s", readline);
+		// Send line to client //
+		fgets(readline, 100, fd);
+		if(feof(fd))
+		{
+			break;
+		}
+	}
+	fclose(fd);
+}
+
+/*
+	Delete a existing receipt and cancel reservation, fileName is receipt number.txt.
+*/
+void deleteReceipt(char fileName[]) // Delete(Based on seat) and cancel reservation
+{
+	FILE * fd=fopen(fileName,"rb");
+	CSeat * p;
+	CSeat empty = {'\0', '\0', '\0', '\0'};
+	char * pch;
+	char readline[100], seatsFileName[15], * temp1, * temp2;
+	int counter = 0;
+	fgets(readline, 100, fd);
+	fgets(readline, 100, fd);
+	fgets(readline, 100, fd);
+	strcpy(seatsFileName, readline);// Find seats filename
+	seatsFileName[strlen(seatsFileName)-1]=0; // Remove "\n"
+	strcat(seatsFileName, ".DAT");
+	p = readData(seatsFileName, 10);
+	fgets(readline, 100, fd);
+	fgets(readline, 100, fd);
+	readline[strlen(readline)-1]=0; // Remove "\n"
+	pch = strtok(readline, ", ");
+	while(pch != NULL)
+	{
+		counter++;
+		p[(atoi)(pch)] = empty;
+		pch = strtok(NULL, ", ");
+	}
+	char tempInt[10];
+	counter = (atoi)(&(p->m_Name[0])) - counter;
+	sprintf(tempInt,"%d",counter);
+	strcpy(&(p->m_Name[0]), tempInt);
+	writeDate(seatsFileName, p);
+	free(p);
+	fclose(fd);
+	remove(fileName);
+}
+
+/*int * getAvailableSeats(void * p)
+{
+	static int seatsAvail[150];
+	memset(seatsAvail,0,sizeof(seatsAvail));
+	struct CSeat * theSeats = (struct CSeat *) p; 
+	int i = 1, j = 0;
+	while(i < 151)
+	{
+		if(strlen(theSeats[i].m_Name) < 2)
+		{
+			seatsAvail[j] = i;
+			j++;
+		}
+		i++;
+	}
+	return seatsAvail;
+}*/
+
+/*	
+	Cases 10 for customers who make reservation, 11 for who want to change seats.
+	p is the struct saved seat list, fileName is optional, for the receipt number.txt.
+	Return a char[](string) including all available seats, separated with space.
+*/	
+char * getAvailableSeats(void * p, int cases, char fileName[])
+{
+	char * seatsAvail = (char *)malloc(750);
+	char temp[3];
+	struct CSeat * theSeats = (struct CSeat *) p; 
+	int i = 1;
+	while(i < 151)
+	{
+		if(strlen(theSeats[i].m_Name) < 2)
+		{
+			sprintf(temp,"%d",i);
+			strcat(seatsAvail,temp);
+			strcat(seatsAvail," ");
+		}
+		i++;
+	}
+	if(cases == 11) // For modification
+	{
+		FILE * fd=fopen(fileName,"rb");
+		char * pch;
+		char readline[100];
+		int counter = 0;
+		while(counter < 5)
+		{
+			fgets(readline, 100, fd);
+			counter++;
+		}
+		readline[strlen(readline)-1]=0; // Remove "\n"
+		pch = strtok(readline, ", ");
+		while(pch != NULL)
+		{
+			strcat(seatsAvail,pch);
+			strcat(seatsAvail," ");
+			pch = strtok(NULL, ", ");
+		}
+		fclose(fd);
+	}
+	return seatsAvail;
+}
+
+/*
+	Use fileName, which is receipt number.txt to change seats both in seats list and receipt.
+	Need send seatsAvail to client and then finish the change.
+*/
+void changeSeats(char fileName[])
+{
+	FILE * fd=fopen(fileName,"r+");
+	char readline[100], seatsFileName[15];
+	int oldSeats[150], newSeats[150];
+	int counter = 0, counterSaved = 0, line_len = 0, len = 0; 
+	char * pch;
+	CSeat empty = {'\0', '\0', '\0', '\0'};
+	while(counter < 3)
+	{
+		fgets(readline, 100, fd);
+		line_len = strlen(readline);
+		len += line_len;
+		counter++;
+	}
+	strcpy(seatsFileName, readline); // Find filename saved in receipt
+	seatsFileName[strlen(seatsFileName)-1]=0; // Remove "\n"
+	strcat(seatsFileName, ".DAT");
+
+	char * seatsAvail;
+	CSeat * p, * temp;
+	p = readData(seatsFileName, 10);
+	temp = readData(seatsFileName, 10);
+	seatsAvail = getAvailableSeats(p, 11, fileName);
+	
+	// Send seatsAvail to client and wait for choice //
+	
+	char seatsChosen[] = "3, 4,"; // Save chosen seats
+	char seatsTemp[100];
+	strcpy(seatsTemp, seatsChosen);
+	
+	fgets(readline, 100, fd);
+	line_len = strlen(readline);
+	len += line_len;
+
+	counter = 0;
+	fgets(readline, 100, fd);
+	readline[strlen(readline)-1]=0; // Remove "\n"
+	pch = strtok(readline, ", ");
+
+	while(pch != NULL)
+	{
+		oldSeats[counter] = (atoi)(pch);
+		pch = strtok(NULL, ", ");
+		counter++;
+	}
+	counterSaved = counter;
+	counter = 0;
+	pch = strtok(seatsChosen, ", ");
+
+	while(counter < counterSaved)
+	{
+		newSeats[counter] = (atoi)(pch);
+		pch = strtok(NULL, ", ");
+		counter++;
+	}
+	counterSaved = counter;
+
+	
+	counter = fseek(fd, len, SEEK_SET);
+	fprintf(fd, "%s", seatsTemp);
+	
+	counter = 0;
+	while(counter < counterSaved)
+	{
+		p[oldSeats[counter]] = empty;
+		p[newSeats[counter]] = temp[oldSeats[counter]];
+		counter++;
+	}
+	writeDate(seatsFileName, p);
+	fclose(fd);
+	free(p);
+	free(temp);
+}
+
+/*
+void correctInfo(char fileName[])
+{
+	// Still cosidering about how to interact with client. If decided, easy to finish.
+	Get correctness and overwritte existing receipt. Then change the reservation.
+}
+*/
+void reserve(char str[])
+{
+	struct CSeat seatsNew[151]; 
+	CSeat * p;
+	char * pch;
+	char * inputSplit[150]; // Maximum 150 passagers togerther
+	char * infoSplit[600]; // with 4 info
+	int passagersNum = 0, counterA = 0, i = 1, counterB = 0, j = 0;
+	char * dateofTravel;
+	pch = strtok(str, "^");
+	while(pch != NULL)
+	{
+		inputSplit[counterA] = pch;
+		pch = strtok(NULL, "^");
+		counterA++;
+	}
+	
+	pch = strtok(inputSplit[0], "!");
+	passagersNum = (atoi)(pch); // Get number of passagers
+	pch = strtok(NULL, "!");
+	dateofTravel = pch; // Get date of travel
+	
+	while(i < counterA) // Store all info into list
+	{
+		pch = strtok(inputSplit[i], "!");
+		while(pch != NULL)
+		{
+			infoSplit[counterB] = pch;
+			pch = strtok(NULL, "!");
+			counterB++;
+		}
+		i++;
+	}
+	char fileName[20];
+    strcpy(fileName, dateofTravel);
+	strcat(fileName,".DAT");
+	if((access(fileName, F_OK)) != -1) // Exist
+	{
+		p = readData(fileName, 10);
+		int seatRem = 150 - (atoi)(p[0].m_Name);
+		if (seatRem >=  passagersNum) // If have enough seats.
+		{
+			printf("Sure.\n");
+		}
+		else // Or not.
+		{
+			printf("Sorry, we don't have enough seats.");
+			// Refuse request. //
+			// Exit. //
+		}
+	}
+	else // Not exist
+	{
+		printf("Sure!\n");
+		p = readData(fileName, 11);
+	}
+	
+	// Ask for contact infomation, and split it into char list. //
+	char * ci[2];
+	ci[0] = "1050586002@qq.com";
+	ci[1] = "9188129551";
+	
+	// Check for seats available. Then send list and wait.
+	
+	//int * seatsAvail;
+	char * seatsAvail;
+	//  seatsAvail = getAvailableSeats(p, 11, "981231311.txt");
+	//  printf("%s\n", seatsAvail);
+	
+	// Ask client for choose seats or not. //
+	// Sent result to client. If yes, get seat number from input. //
+	
+	char * seatNum[150]; // Save seats wanted
+	seatNum[0] = "1";
+	seatNum[1] = "2";
+	
+	writeReceipt(infoSplit, seatNum, ci, dateofTravel);
+
+	i = 0;
+	while(i < counterA - 1)
+	{
+		strcpy(p[(atoi)(seatNum[i])].m_Name, infoSplit[4*i]);
+		strcpy(p[(atoi)(seatNum[i])].m_DoB, infoSplit[4*i+1]);
+		strcpy(p[(atoi)(seatNum[i])].m_Gender, infoSplit[4*i+2]);
+		strcpy(p[(atoi)(seatNum[i])].m_IDn, infoSplit[4*i+3]);
+		i++;
+	}
+	
+	int passagerNumUpdate = (atoi)(p[0].m_Name);
+	passagerNumUpdate = passagerNumUpdate + passagersNum;
+	char temp[25];
+	sprintf(temp,"%d",passagerNumUpdate);
+	strcpy(p[0].m_Name, temp);
+	writeDate(fileName, p);
+	free(p);
+	free(seatsAvail);
+}
+void main(int argc, char **argv)
+{
+	char str[1024] = "2!13122019^weizhong shao!07/04/1997!Man!20033155^SDQ QABS!01/02/1996!Woman!20349844";
+	//reserve(str);
+	//inqueryReceipt("1243755680.txt"); //
+	//changeSeats("90638907.txt");
+}
