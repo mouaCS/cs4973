@@ -45,9 +45,10 @@ int main(int argc, char const *argv[])
 
     while (runClient == 1)
     {
-        connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
-        char conData[30];
-        scanf("%s", conData);
+        char input[30];
+        char *conData;
+        fgets(input, 30, stdin);
+        conData = strtok(input, "\n");
 
         // Exit From Client Loop
         if (strcmp(conData,"exit") == 0)
@@ -69,6 +70,7 @@ int main(int argc, char const *argv[])
         else
         {
             send(sock, conData, strlen(conData), 0);
+
 
             // Read Server Message To Buffer
             char buffer[1024] = {0};

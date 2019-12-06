@@ -79,6 +79,7 @@ void seat_manager(char name[50], char gender[7], char dot[15], char choice[5]) {
     FILE *fp;
     FILE *ftemp;
     char filename[20], filetmp[20], newline[75], cmp[20];
+    char file_error_msg[20] = "ERROR";
     char *choose_msg = "Type any number with a vacant label.\n\n";
     int new_seat = 0;
 
@@ -98,7 +99,7 @@ void seat_manager(char name[50], char gender[7], char dot[15], char choice[5]) {
 // section handles making reservation and ask for relevant info:
 // name, email, phone #, birth date, gender, government ID number, and flight date
 // ===========================================================================
-void make_res() {
+void make_res(int new_socket) {
     int ticket_num = rand();
     int add_people = 1;
     int seat_num;
@@ -201,16 +202,15 @@ void make_res() {
 
     // thank you message
     char thank_msg[100] = "\nThank you for making reservations with us! Here is your ticket number: ";
-    char ticket_msg[15];
-    sprintf(ticket_msg, "%d\n\n", ticket_num);
-    send(new_socket, thank_msg, strlen(thank_msg), 0);
-    send(new_socket, ticket_msg, strlen(ticket_msg), 0);
+    char ending_msg[130];
+    sprintf(ending_msg, "%s %d", thank_msg, ticket_num);
+    send(new_socket, ending_msg, strlen(ending_msg), 0);
 }
 
 // ===========================================================================
 // thread function for client to inquire about reservation
 // ===========================================================================
-void inquire_res() {
+void inquire_res(int new_socket) {
     FILE *fp;
     char filename[15];
     char ticket_num[15];
@@ -226,10 +226,9 @@ void inquire_res() {
     if(fp == NULL) {
         char *error_msg = "Unable to find receipt.\n";
         send(new_socket, error_msg, strlen(ticket_msg), 0);
-        exit(EXIT_FAILURE);
     }
 
-    while(1) {
+    while(fp != NULL) {
         unsigned char buff[256] = {0};
         int nread = fread(buff, 1, 256, fp);
         printf("Bytes read %d\n", nread);
@@ -329,12 +328,15 @@ void *establishCon(void *threadID)
                     pthread_mutex_lock(&lock);
                     make_res(new_socket);
                     pthread_mutex_unlock(&lock);
+
+                    // Send Default Message Again
+                    send(new_socket, conMessage, strlen(conMessage), 0);
                 }
                 // Inquiries
                 else if (strcmp(buffer, "2") == 0)
                 {
                     printf("SELECTED 2...\n");
-                    inquire_res();
+                    inquire_res(new_socket);
                 }
                 // Modify Reservations
                 else if (strcmp(buffer, "3") == 0)
@@ -350,6 +352,7 @@ void *establishCon(void *threadID)
                     printf("SELECTED 4...\n");
                     send(new_socket, conMessage, strlen(conMessage), 0);
                 }
+                // Send Default Message
                 else
                     send(new_socket, conMessage, strlen(conMessage), 0);
             }
