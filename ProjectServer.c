@@ -96,8 +96,12 @@ void seat_manager(char name[50], char gender[7], char dot[15], char choice[5], i
     FILE *ftemp;
     char filename[20], filetmp[20], newline[75], cmp[20];
     char file_error_msg[20] = "ERROR";
-    char *choose_msg = "Type any number with a vacant label.\n\n";
+    char *choose_msg = "Type any number with a vacant label.\n";
+    char new_seat_string[10];
     int new_seat = 0;
+
+    strcpy(new_seat_string,client_req(new_socket,choose_msg));
+
 
     sprintf(filename, "%s.txt", dot);
     sprintf(filetmp, "%s.tmp", dot);
@@ -270,7 +274,7 @@ void inquire_res(int new_socket) {
 // ===========================================================================
 // thread function for client to modify about reservation
 // ===========================================================================
-void *modify_res(void *arg) {
+void modify_res() {
     printf("\n\nModify reservation\n\n");
 }
 
