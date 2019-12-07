@@ -57,7 +57,7 @@ int * getAvailableSeatsList(void * p)
 	}
 	return seatsAvail;
 }
-
+// p for struct, cases 10 for normal, 11 for change seats. Return a char including all available seats.
 char * getAvailableSeats(void * p, int cases, char fileName[])
 {
 	char * seatsAvail = (char *)malloc(750);
@@ -98,7 +98,7 @@ char * getAvailableSeats(void * p, int cases, char fileName[])
 	}
 	return seatsAvail;
 }
-
+// Read and return a struct icnluding a flight seats
 struct CSeat * readData(char fileName[], int cases)
 {
 	struct CSeat * theSeats = (struct CSeat *)malloc(151*sizeof(theSeats[1]));
@@ -168,17 +168,14 @@ char *client_req(int new_socket, char *msg)
     char *returnString = response;
     return returnString;
 }
-
+// Used to send and read.
 int client_req_and_recv_response(int new_socket, char * msg, int msgLen, char * response, int resLimit)
 {
     send(new_socket, msg, msgLen, 0);
     return read(new_socket, response, resLimit);
 }
 
-// ===========================================================================
-// section handles making reservation and ask for relevant info:
-// name, email, phone #, birth date, gender, government ID number, and flight date
-// ===========================================================================
+// Save info to struct, then send them to produce Receipt and flight seats.
 void make_res(int new_socket) {
 	struct CSeat seatsNew[151]; 
 	CSeat * p;
@@ -467,9 +464,7 @@ void changeSeats(int new_socket)
 	memset(buffer, 0, sizeof(buffer));
 }
 
-// ===========================================================================
 // thread function for client to inquire about reservation
-// ===========================================================================
 void inquire_res(int new_socket) {
 	char fileName[20];
 	char *ticket_msg = "\nPlease enter ticket number: ";
@@ -514,9 +509,7 @@ void *modify_res(int new_socket) {
     pthread_exit(NULL);
 }
 
-// ===========================================================================
-// thread function for client to cancel reservation
-// ===========================================================================
+// thread function for client to cancel reservation and delete.
 void cancel_res(int new_socket) {
 	char fileName[20];
 	char *ticket_msg = "\nPlease enter ticket number: ";
