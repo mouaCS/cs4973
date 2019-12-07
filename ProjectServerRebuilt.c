@@ -62,7 +62,7 @@ char * getAvailableSeats(void * p, int cases, char fileName[])
 {
 	char * seatsAvail = (char *)malloc(750);
 	memset(seatsAvail,0,sizeof(seatsAvail));
-	char temp[3];
+	char temp[4];
 	struct CSeat * theSeats = (struct CSeat *) p; 
 	int i = 1;
 	while(i < 151)
