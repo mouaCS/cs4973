@@ -61,6 +61,7 @@ int * getAvailableSeatsList(void * p)
 char * getAvailableSeats(void * p, int cases, char fileName[])
 {
 	char * seatsAvail = (char *)malloc(750);
+	memset(seatsAvail,0,sizeof(seatsAvail));
 	char temp[3];
 	struct CSeat * theSeats = (struct CSeat *) p; 
 	int i = 1;
@@ -129,7 +130,7 @@ void writeDate(char fileName[], void * p)
 	Write a new receipt, called in reserve(). Use all personal infomation, wanted seats, contact information
 	and dateofTravel.
 */
-void writeReceipt(char info[160][80], char * seats[], char ci1[], char ci2[], char dateofTravel[], int ticketNumber)
+void writeReceipt(char info[160][80], char seats[150][2], char ci1[], char ci2[], char dateofTravel[], int ticketNumber)
 {
 	int i = 0, j = 0;
 	char fileName[15];
@@ -139,7 +140,7 @@ void writeReceipt(char info[160][80], char * seats[], char ci1[], char ci2[], ch
 	fprintf(fd, "E-mail: %s, Phone number: %s\n", ci1, ci2);
 	fprintf(fd, "%s\n", dateofTravel);
 	fprintf(fd, "Reserved Seats: \n");
-	while(seats[j])
+	while(strlen(seats[j]) > 0)
 	{
 		fprintf(fd, "%s, ", seats[j]);
 		j++;
@@ -182,9 +183,11 @@ void make_res(int new_socket) {
 	struct CSeat seatsNew[151]; 
 	CSeat * p;
 	char infoSplit[160][80];
+	memset(infoSplit,0,sizeof(infoSplit));
 	int passagersNum = 0;
 	char dateofTravel[12];
-	char * seatNum[150]; // Save seats wanted
+	char seatNum[150][2]; // Save seats wanted
+	memset(seatNum,0,sizeof(seatNum));
 	char seats[150]; // Seats chosen
 	
 	srand((unsigned int)time(NULL));
@@ -289,12 +292,10 @@ void make_res(int new_socket) {
 	char * seatsAvail;
 	while(1)
     {
-		printf("A\n");
 		seatsAvail = getAvailableSeats(p, 10, "NULLL");
 		int n=client_req_and_recv_response(new_socket,seat_msg,strlen(seat_msg),
 			choiceB,sizeof(choiceB));
 		choiceB[n] = 0;
-		printf("B\n");
         if (strcmp(choiceB, "yes") == 0)
         {
 			send(new_socket, seatsAvail, strlen(seatsAvail), 0);
@@ -307,8 +308,8 @@ void make_res(int new_socket) {
 			pch = strtok(seats, " ");
 			while(pch != NULL)
 			{
-				seatNum[i] = pch;
-				pch = strtok(NULL, " ");
+				strcpy(seatNum[i], pch);
+				pch = strtok(NULL, ", ");
 				i++;
 			}
             break;
@@ -321,8 +322,8 @@ void make_res(int new_socket) {
 			pch = strtok(seatsAvail, " ");
 			while(pch != NULL && i < passagersNum)
 			{
-				seatNum[i] = pch;
-				pch = strtok(NULL, " ");
+				strcpy(seatNum[i], pch);
+				pch = strtok(NULL, ", ");
 				i++;
 			}
 			break;
@@ -335,8 +336,8 @@ void make_res(int new_socket) {
             memset(buffer, 0, sizeof(buffer));
             send(new_socket, invalid_msg, strlen(invalid_msg), 0);
         }
+		free(seatsAvail);
     }
-	free(seatsAvail);
 	
 	char email[25], phone[15];
 	int n=client_req_and_recv_response(new_socket,email_msg,strlen(email_msg),
@@ -376,6 +377,7 @@ void make_res(int new_socket) {
 
 void changeSeats(int new_socket)
 {
+	char *seatsavail_msg = "Please enter the seats you want, separated by space, end by comma (1,2,11,): ";
 	char fileName[20];
 	char *ticket_msg = "\nPlease enter ticket number: ";
 	int n=client_req_and_recv_response(new_socket,ticket_msg,strlen(ticket_msg),
@@ -406,16 +408,18 @@ void changeSeats(int new_socket)
 	strcat(seatsFileName, ".DAT");
 
 	char * seatsAvail;
+	char seatsChosen[150];
+	char seatsTemp[100];
 	CSeat * p, * temp;
 	p = readData(seatsFileName, 10);
 	temp = readData(seatsFileName, 10);
 	seatsAvail = getAvailableSeats(p, 11, fileName);
-	
 	// Send seatsAvail to client and wait for choice //
-	
-	char seatsChosen[] = "3, 4,"; // Save chosen seats
-	char seatsTemp[100];
-	
+	send(new_socket, seatsAvail, strlen(seatsAvail), 0);
+	n=client_req_and_recv_response(new_socket,seatsavail_msg,strlen(seatsavail_msg),
+		seatsChosen,sizeof(seatsChosen));
+	seatsChosen[n] = 0;
+			
 	strcpy(seatsTemp, seatsChosen);
 	
 	fgets(readline, 100, fd);
@@ -426,7 +430,6 @@ void changeSeats(int new_socket)
 	fgets(readline, 100, fd);
 	readline[strlen(readline)-1]=0; // Remove "\n"
 	pch = strtok(readline, ", ");
-
 	while(pch != NULL)
 	{
 		oldSeats[counter] = (atoi)(pch);
@@ -445,9 +448,8 @@ void changeSeats(int new_socket)
 	}
 	counterSaved = counter;
 
-	
 	counter = fseek(fd, len, SEEK_SET);
-	fprintf(fd, "%s", seatsTemp);
+	fprintf(fd, "%s             \n", seatsTemp);
 	
 	counter = 0;
 	while(counter < counterSaved)
@@ -460,6 +462,9 @@ void changeSeats(int new_socket)
 	fclose(fd);
 	free(p);
 	free(temp);
+	send(new_socket, read_only_message, strlen(read_only_message), 0);
+	read(new_socket, buffer, 1024);
+	memset(buffer, 0, sizeof(buffer));
 }
 
 // ===========================================================================
@@ -484,7 +489,7 @@ void inquire_res(int new_socket) {
 	fgets(readline, 100, fd);
 	while(1)
 	{
-		sleep(0.3);
+		sleep(0.1);
 		printf("%s", readline);
 		send(new_socket, read_only_message, strlen(read_only_message), 0);
 		read(new_socket, buffer, 1024);
@@ -503,8 +508,9 @@ void inquire_res(int new_socket) {
 // thread function for client to modify about reservation
 // ===========================================================================
 void *modify_res(int new_socket) {
+	printf("\n\nModify reservation enter\n\n");
 	changeSeats(new_socket);
-    printf("\n\nModify reservation\n\n");
+    printf("\n\nModify reservation end\n\n");
     pthread_exit(NULL);
 }
 
